@@ -12,6 +12,7 @@ from tgbot.handlers.utils.handlers import _do_message
 
 def is_new_member(chat_member_update: ChatMemberUpdated) -> bool:
     status_change = chat_member_update.difference().get("status")
+    print(status_change)
     old_is_member, new_is_member = chat_member_update.difference().get("is_member", (None, None))
     if status_change is not None:
         old_status, new_status = status_change
@@ -25,15 +26,14 @@ def is_new_member(chat_member_update: ChatMemberUpdated) -> bool:
 def check_subscribe(update: Update, context: CallbackContext) -> str:
     hcnt = context.user_data['hcnt']
     user = User.objects.filter(user_id=hcnt.user_id).first()
-    if user is None:
-        return END
+    if user is None: return END
     elif is_new_member(update.chat_member):
         member_name = update.chat_member.new_chat_member.user.mention_html()
         if member_name in context.user_data['msg']['new_user']:
             hcnt.role = 'say_thanks'
-            _do_message(hcnt)
+            hcnt = _do_message(hcnt)
             hcnt.role = 'choose_todo'
-            _do_message(hcnt)
+            hcnt = _do_message(hcnt)
             user.last_name = 'JustSubscribed'
             user.save()
             return SELECTING_LEVEL
@@ -43,6 +43,7 @@ def check_subscribe(update: Update, context: CallbackContext) -> str:
 
 def subscribe_faild(context: CallbackContext):
     hcnt = context.job.context
+    print('yes')
     user = User.objects.filter(user_id=hcnt.user_id).first()
     if user.last_name == '':
         user.delete()

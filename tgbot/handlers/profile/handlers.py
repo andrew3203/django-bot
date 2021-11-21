@@ -8,8 +8,9 @@ from telegram import (
 )
 from telegram.ext import CallbackContext
 
-from tgbot.models import *
-from tgbot.handlers.utils.handlers import *
+from tgbot.models import User
+from tgbot.handlers.utils.handlers import _do_message
+from tgbot.handlers.onboarding import handlers as onboarding_handlers
 from tgbot.handlers.utils.conf import *
 
 
@@ -21,23 +22,24 @@ def ask_input(update: Update, context: CallbackContext) -> str:
     ]]
     u = User.get_user(update, context)
     hcnt = context.user_data['hcnt']
-    hcnt.user_id = u.id
+    hcnt.user_id = u.user_id
     hcnt.role = 'ask_profile'
     hcnt.to_top = False
+
     if u.is_active:
         hcnt.to_top = True
         keyboard[-1].append(InlineKeyboardButton('Готово', callback_data=f'back'))
+        
     markup = InlineKeyboardMarkup(keyboard)
     if update.callback_query:
         update.callback_query.answer("Получено")
-        message_id = update.callback_query.message.message_id
+        hcnt.navigation['message_id'] = update.callback_query.message.message_id
         hcnt.action = 'edit_msg'
     else:
-        message_id = update.message.message_id
         hcnt.action = 'send_msg'
     
     context.user_data['hcnt'] = hcnt
-    _do_message(hcnt, message_id, reply_markup=markup)  
+    _do_message(hcnt, message_id=hcnt.navigation['message_id'], reply_markup=markup)  
     return EDIT_MSG
 
 
@@ -47,9 +49,10 @@ def edit_msg(update: Update, context: CallbackContext) -> str:
     hcnt.action = 'edit_msg'
     hcnt.to_top = False
     hcnt.role = update.callback_query.data
+    hcnt.navigation['message_id'] = update.callback_query.message.message_id
 
     context.user_data['hcnt'] = hcnt
-    _do_message(hcnt, reply_markup=None)
+    _do_message(hcnt, reply_markup=None, message_id=hcnt.navigation['message_id'])
     return TYPING
 
 
@@ -101,3 +104,10 @@ def save_name(update: Update, context: CallbackContext) -> str:
 
         context.user_data['hcnt'] = hcnt
         return ask_input(update, context)
+
+def go_back(update: Update, context: CallbackContext) -> str:
+    hcnt = context.user_data['hcnt']
+    hcnt.action = 'edit_msg'
+    hcnt.navigation['message_id'] = update.callback_query.message.message_id
+    context.user_data['hcnt'] = hcnt
+    return onboarding_handlers.done(update, context)

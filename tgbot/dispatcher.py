@@ -1,13 +1,12 @@
 """
     Telegram event handlers
     TODO:
-        - закончить finish_test
-        - проверить, что везде нужное message_id
-        - проверить, что везде нужное to_top
-        - проверить, что везде есть keywords и navigation
-        - проверить всю логику
-
-        - get_gold
+        - прогнать все в голове
+        - проверить все входы и выходы, не понятно с
+        - что с выбором сложности: до конца убедиться в типе
+        - дописать сохранение ответов из опросы и квиза
+        - убрать лишние зависимости
+        - настроить файлы
 """
 import sys
 import logging
@@ -39,12 +38,6 @@ from tgbot.handlers.profile import handlers as profile_handlers
 
 
 
-from tgbot.handlers.broadcast_message import handlers as broadcast_handlers
-from tgbot.handlers.broadcast_message.static_text import broadcast_command
-from tgbot.handlers.broadcast_message.manage_data import CONFIRM_DECLINE_BROADCAST
-
-
-
 
 def setup_dispatcher(dp):
     """
@@ -69,15 +62,14 @@ def setup_dispatcher(dp):
                 PreCheckoutQueryHandler(getgol_handlers.precheckout_callback),
                 MessageHandler(Filters.successful_payment, getgol_handlers.successful_payment_callback)
             ],
-
         },
         fallbacks=[
             CommandHandler('stop', onboarding_handlers.stop), # -> STOPPING
         ],
         map_to_parent={
-            TO_COURSES: CHOOSER,
+            END: SELECTING_LEVEL,
             STOPPING: STOPPING,
-        },
+        }
     )
     run_test_handler = ConversationHandler(
         entry_points=[
@@ -100,19 +92,19 @@ def setup_dispatcher(dp):
             END: SELECTING_LEVEL,
             # End conversation altogether
             STOPPING: STOPPING,
-        },
+        }
     )
     profile_handler = ConversationHandler(
         entry_points=[CallbackQueryHandler(profile_handlers.ask_input, pattern='^profile$')],
         states={
             EDIT_MSG: [CallbackQueryHandler(profile_handlers.edit_msg, pattern='enter_name|enter_email')],
             TYPING: [
-                MessageHandler(Filters.regex("[^@]+@[^@]+\.[^@]+"), profile_handlers.save_email), # будет вызывать ask_input
-                MessageHandler(Filters.regex(u"(\w+)\s(\w+)"), profile_handlers.save_name), # будет вызывать ask_input
+                MessageHandler(Filters.regex("[^@]+@[^@]+\.[^@]+"), profile_handlers.save_email), 
+                MessageHandler(Filters.regex(u"(\w+)\s(\w+)"), profile_handlers.save_name), 
                 ]
         },
         fallbacks=[
-            CallbackQueryHandler(onboarding_handlers.done, pattern=f'back'), #  return END
+            CallbackQueryHandler(profile_handlers.go_back, pattern=f'back'), #  return END
             CommandHandler('stop', onboarding_handlers.stop), #  return STOPPING
         ],
         map_to_parent={
@@ -120,7 +112,7 @@ def setup_dispatcher(dp):
             END: SELECTING_LEVEL,
             # End conversation altogether
             STOPPING: STOPPING,
-        },
+        }
     )
     courses_handler = ConversationHandler(
         entry_points=[
@@ -145,20 +137,20 @@ def setup_dispatcher(dp):
             END: SELECTING_LEVEL,
             # End conversation altogether
             STOPPING: STOPPING,
-        },
+        }
     )
     
     commands_handler = [
-        CommandHandler('start', onboarding_handlers.start), # return SELECTING_LEVEL | CHECK_SUBSRIBE
-        CommandHandler('gostudy', onboarding_handlers.go_study), # return RUN_TEST
-        CommandHandler('getgold', onboarding_handlers.get_gold), # return GET_GOLD
-        CommandHandler('help', onboarding_handlers.help), # STOPPING
+        CommandHandler('start', onboarding_handlers.start), 
+        CommandHandler('gostudy', onboarding_handlers.go_study), 
+        CommandHandler('getgold', onboarding_handlers.get_gold), 
+        CommandHandler('help', onboarding_handlers.help), 
     ]
     conv_handler = ConversationHandler(
         entry_points=commands_handler,
         states={
             SELECTING_LEVEL: [
-                profile_handler, # done
+                profile_handler, 
                 run_test_handler,
                 get_gold_handler,
                 courses_handler
@@ -166,21 +158,12 @@ def setup_dispatcher(dp):
             CHECK_SUBSRIBE: [ChatMemberHandler(track_user.check_subscribe, ChatMemberHandler.CHAT_MEMBER)],
             STOPPING: commands_handler,
         },
-        fallbacks=[
-            CallbackQueryHandler(onboarding_handlers.done, pattern=f'done|exit')
-        ]
+        fallbacks=[CallbackQueryHandler(onboarding_handlers.done, pattern=f'done|exit')]
     )
     
     # main handle
     dp.add_handler(conv_handler)
-
-    # broadcast message
-    dp.add_handler(
-        MessageHandler(Filters.regex(rf'^{broadcast_command}(/s)?.*'), broadcast_handlers.broadcast_command_with_message)
-    )
-    dp.add_handler(
-        CallbackQueryHandler(broadcast_handlers.broadcast_decision_handler, pattern=f"^{CONFIRM_DECLINE_BROADCAST}")
-    )
+  
     # files
     dp.add_handler(MessageHandler(Filters.animation, files.show_file_id))
 
@@ -205,7 +188,7 @@ def run_pooling():
     # when you run local test
     # bot.send_message(text='👋', chat_id=<YOUR TELEGRAM ID>)
 
-    updater.start_polling()
+    updater.start_polling(allowed_updates=Update.ALL_TYPES)
     updater.idle()
 
 

@@ -1,21 +1,12 @@
-from typing import Optional
-from django.core.exceptions import ValidationError
-from django.core.validators import validate_email
-from django.db.models import query
 from django.utils.timezone import now
-
-
 from telegram import (
     Update,
-    ChatMember, ChatMemberUpdated,
     InlineKeyboardButton, InlineKeyboardMarkup,
     KeyboardButton, ReplyKeyboardMarkup,
-    CallbackQuery,
-    ParseMode,
 )
 from telegram.ext import CallbackContext
 
-from tgbot.models import Test, User, Question, Answer
+from tgbot.models import Test, User, Question
 from tgbot.handlers.utils.handlers import _do_message
 from tgbot.handlers.courses.handlers import send_lvl_choose, show_thems
 from tgbot.handlers.onboarding.handlers import done, get_gold
@@ -53,26 +44,29 @@ def run_test(update: Update, context: CallbackContext) -> str:
             btn_name = 'Первый вопрос'
             new_q_id = Test.get_new_question(user.user_id, test_id)
             if new_q_id > 0:
+                print(role, new_q_id)
                 keyboard.append(
                     [InlineKeyboardButton('Начать c последнего места', callback_data=f'q_id-{new_q_id}')]
                 )
+            print(role)
         else:
             role = 'start_test_no_gold'
             data = f'get_gold'
             btn_name = 'Получить золото'
+            print(role)
     else:
         role = 'start_test_no_active'
         data = f'profile'
         btn_name = 'Регистрация'
         hcnt.profile_status = btn_name
+        print(role)
 
     hcnt.role = role
     hcnt.navigation['message_id'] = query.message.message_id
-    hcnt.keywords['lvl'] = lvl
+    hcnt.keywords[lvl] = ['lvl']
     hcnt.action = 'edit_msg'
     keyboard[-1].append(InlineKeyboardButton(btn_name, callback_data=data))
     markup = InlineKeyboardMarkup(keyboard)
-
     context.user_data['hcnt'] = hcnt
     _do_message(hcnt, message_id=query.message.message_id, reply_markup=markup)    
     return QUESTIONS
@@ -169,7 +163,8 @@ def catch_answer(update: Update, context: CallbackContext, job_queue=None) -> st
         hcnt.role = 'show_answer'
         hcnt.keywords = {**user.to_flashtext(), **q.to_flashtext()}
         is_correct = q.is_answer_correct(answer_text, user, hcnt.navigation['start_time'])
-        hcnt.keywords['is_correct'] = 'Да' if is_correct else 'Нет'
+        cc = 'Да' if is_correct else 'Нет'
+        hcnt.keywords[cc] = [is_correct]
         keybord = [[InlineKeyboardButton('Выйти', callback_data='back')]]
         if is_correct:
             job_queue.stop()

@@ -1,27 +1,17 @@
-import datetime
-from flashtext import keyword
-
 from telegram import (
     Update,
-    ChatMember, ChatMemberUpdated,
     InlineKeyboardButton, InlineKeyboardMarkup,
-    KeyboardButton, ReplyKeyboardMarkup,
-    CallbackQuery,
-    ParseMode,
 )
 from telegram.ext import CallbackContext
 
-from django.utils import timezone
 
-from tgbot.handlers.utils.info import extract_user_data_from_update
 from tgbot.handlers.utils.handlers import _do_message, send_selecting_lvl
 from tgbot.handlers.utils.track_user import subscribe_faild
 from tgbot.handlers.profile.handlers import ask_input
 from tgbot.handlers.getgold.handlers import run_pay
-
+from tgbot.handlers.courses.handlers import show_thems
 
 from tgbot.handlers.utils.conf import *
-
 
 from tgbot.models import User
 from utils.models import HelpContext
@@ -43,9 +33,9 @@ def start(update: Update, context: CallbackContext) -> str:
         reply_markup = InlineKeyboardMarkup([[
             InlineKeyboardButton('Подписаться на канал!', url="tg://resolve?domain=corporatum")
         ]])
-        context.user_data['hcnt'] = hcnt
-        _do_message(hcnt, reply_markup=reply_markup, disable_web_page_preview=True)        
+        hcnt = _do_message(hcnt, reply_markup=reply_markup, disable_web_page_preview=True)        
         context.job_queue.run_once(subscribe_faild, 500, context=hcnt)
+        context.user_data['hcnt'] = hcnt
         return CHECK_SUBSRIBE
     else:
         hcnt.profile_status = u'Мой профиль'
@@ -66,13 +56,13 @@ def help(update: Update, context: CallbackContext) -> str:
         to_top=False,
         navigation=dict()
     )
-    _do_message(hcnt)
+    context.user_data['hcnt'] = _do_message(hcnt)
     return STOPPING
 
 
 def go_study(update: Update, context: CallbackContext) -> str:
-    hcnt = context.user_data['hcnt']
-
+    return show_thems(update, context)
+    
 
 def get_gold(update: Update, context: CallbackContext) -> None:
     u = User.get_user(update, context)
@@ -93,7 +83,6 @@ def get_gold(update: Update, context: CallbackContext) -> None:
 
 def done(update: Update, context: CallbackContext) ->str:
     hcnt = context.user_data['hcnt']
-    
     if hcnt.to_top:
          send_selecting_lvl(update, context)
          hcnt.to_top = False
@@ -103,6 +92,7 @@ def done(update: Update, context: CallbackContext) ->str:
 
 def stop(update: Update, context: CallbackContext) -> str:
     hcnt = context.user_data['hcnt']
-    _do_message()
-    update.message.reply_text('Процесс прерван')
+    hcnt.role = 'stop'
+    hcnt.action = 'edit_msg'
+    context.user_data['hcnt'] = _do_message(hcnt)
     return STOPPING

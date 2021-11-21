@@ -10,6 +10,20 @@ from tgbot.forms import BroadcastForm
 from tgbot.tasks import broadcast_message
 from tgbot.handlers.broadcast_message.utils import _send_message
 
+from django_celery_beat.models import (
+    PeriodicTask, ClockedSchedule,
+    IntervalSchedule, CrontabSchedule,
+    SolarSchedule
+)
+
+
+
+admin.site.unregister(SolarSchedule)
+admin.site.unregister(ClockedSchedule)
+admin.site.unregister(IntervalSchedule)
+admin.site.unregister(CrontabSchedule)
+admin.site.unregister(PeriodicTask)
+
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):

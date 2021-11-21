@@ -7,7 +7,7 @@ from typing import Optional, Dict, List
 
 import telegram
 from telegram import (
-    Update,
+    Update, Poll,
     MessageEntity, 
     InlineKeyboardButton, InlineKeyboardMarkup,
 )
@@ -69,18 +69,61 @@ def _from_celery_entities_to_entities(celery_entities: Optional[List[Dict]] = No
     return entities
 
 
+def _send_poll(
+    help_context: HelpContext,
+    poll_type: None,
+    questions: list,
+    tg_token: str = TELEGRAM_TOKEN,
+) -> HelpContext:
+
+    user_id = help_context.user_id
+    bot = telegram.Bot(tg_token)
+    msg = SupportMessage.get_message(help_context)
+
+    try:
+        if poll_type == 'poll':
+            poll = bot.send_poll(
+                chat_id=user_id,
+                text=msg.text,
+                questions=questions,
+                is_anonymous=False,
+                allows_multiple_answers=True,
+            )
+        else:
+            poll = bot.send_poll(
+                chat_id=user_id,
+                text=msg.text,
+                questions=questions,
+                is_anonymous=False,
+                type=Poll.QUIZ, 
+                correct_option_id=2
+            )
+     
+    except telegram.error.Unauthorized:
+        print(f"Can't send message to {user_id}. Reason: Bot was stopped.")
+        User.objects.filter(user_id=user_id).update(is_blocked_bot=True)
+        success = False
+    else:
+        success = True
+        User.objects.filter(user_id=user_id).update(is_blocked_bot=False)
+    return success
+
+
+
+
 def _do_message(
     help_context: HelpContext,
-    message_id: Optional[int] = None,
     parse_mode: Optional[str] = telegram.ParseMode.HTML,
     reply_markup: Optional[List[List[Dict]]] = None,
     disable_web_page_preview: Optional[bool] = None,
     entities: Optional[List[MessageEntity]] = None,
     tg_token: str = TELEGRAM_TOKEN,
-) -> bool:
+) -> HelpContext:
     
     action = help_context.action
+    message_id = help_context.message_id
     user_id = help_context.user_id
+    
     bot = telegram.Bot(tg_token)
     msg = SupportMessage.get_message(help_context)
 
@@ -112,11 +155,11 @@ def _do_message(
     except telegram.error.Unauthorized:
         print(f"Can't send message to {user_id}. Reason: Bot was stopped.")
         User.objects.filter(user_id=user_id).update(is_blocked_bot=True)
-        success = False
+        help_context.message_id = None
     else:
-        success = True
+        help_context.message_id = m.message_id if not action == 'delete_msg' else None
         User.objects.filter(user_id=user_id).update(is_blocked_bot=False)
-    return success
+    return help_context
 
 
 def send_selecting_lvl(update: Update, context: CallbackContext):
@@ -131,5 +174,6 @@ def send_selecting_lvl(update: Update, context: CallbackContext):
     ])
     if update.callback_query is not None:
         update.callback_query.answer('Готово')
-    message_id = hcnt.navigation.get('message_id', None)
-    _do_message(hcnt, reply_markup=markup, message_id=message_id)
+    hcnt = _do_message(hcnt, reply_markup=markup)
+    context.user_data['hcnt'] = hcnt
+

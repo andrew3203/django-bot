@@ -51,8 +51,8 @@ class User(CreateUpdateTracker):
         return f'@{self.username}' if self.username is not None else f'{self.username}'
 
     class Meta:
-        verbose_name = _('Телеграмм пользователь')
-        verbose_name_plural = _('Телеграмм пользователи')
+        verbose_name = _('Пользователь')
+        verbose_name_plural = _('Пользователи')
         ordering = ['-date_joined']
         unique_together = [['user_id', 'email']]
 
@@ -150,12 +150,14 @@ class Question(models.Model):
     def __str__(self):
         return self.short_name
 
+    
+
     def to_flashtext(self):
         return {
             self.short_name: ['question_name'],
             self.text: ['question_text'],
             self.timer.strftime("%H:%M:%S"): ['time_to_question'],
-            str(self.difficulty_lvl): ['question_lvl'],
+            self.get_difficulty_lvl_name(): ['question_lvl'],
         }
 
     def get_time_left(self, start_time):
@@ -167,9 +169,13 @@ class Question(models.Model):
         answers = self.right_answers.split(';')
         answers = list(map(_normalize_text, answers))
 
-        if self.answer_type in [self.AnswerType.FLY_BTN, self.AnswerType.POLL]:
+        if self.answer_type == self.AnswerType.FLY_BTN:
             ans = _normalize_text(ans)
             is_correct = True if ans in answers else False
+
+        elif self.answer_type == self.AnswerType.POLL:
+            ans = list(map(_normalize_text, ans))
+            is_correct = True if len(set(ans) and set(answers)) > 0 else False
 
         elif self.answer_type in [self.AnswerType.WORD, self.AnswerType.KB_BTN]:
             ans = _normalize_text(ans.replace(' ', ''))
@@ -193,11 +199,16 @@ class Question(models.Model):
 
         return is_correct
 
+    def get_difficulty_lvl_name(self):
+        return str(dict(self.DifficultyLvl.choices).get(self.difficulty_lvl))
+
     @staticmethod
     def get_lvls_for_test(test_id):
-        s =  set([q.difficulty_lvl for q in Question.objects.filter(test__theme__id=test_id)])
-        return sorted(s)
-
+        s = set()
+        for q in Question.objects.filter(test__id=test_id):
+            s.add((q.difficulty_lvl, q.get_difficulty_lvl_name()))
+        return sorted(s, key=lambda x: x[0])
+    
     @admin.display(description='Тест')
     def get_test(self):
         obj = Test.objects.filter(questions=self).first()
@@ -214,7 +225,8 @@ class Test(models.Model):
     short_name = models.CharField(_('Название'), max_length=50)
     questions = models.ManyToManyField(
         Question,
-        related_name=_(u'test'),
+        related_name=_('tests'),
+        related_query_name=_('test'),
         verbose_name=_(u'Вопросы'),
         help_text= _(u'Выпросы этого теста'),
         blank=True
@@ -235,7 +247,7 @@ class Test(models.Model):
         }
 
     def get_difficulty_lvl(self):
-         ans = [q.difficulty_lvl for q in Question.objects.filter(test=self)]
+         ans = [q.difficulty_lvl for q in Question.objects.filter(tests=self)]
          return math.mean(ans)
 
     @staticmethod
@@ -253,7 +265,7 @@ class Test(models.Model):
 
     @staticmethod
     def get_question(num, test_id) -> Optional[bool]:
-        questions = Question.objects.filter(test___id=test_id)
+        questions = Question.objects.filter(tests___id=test_id)
         if len(questions) > num:
             return questions[num]
         else:
@@ -261,15 +273,15 @@ class Test(models.Model):
 
     @staticmethod
     def get_new_question(user_id, test_id): # показать следующий не сделанный вопрос
-        questions = Question.objects.filter(test___id=test_id)
-        questions_closed = Question.objects.filter(answer__is_correct=True, answer__user__user_id=user_id)
+        questions = Question.objects.filter(tests___id=test_id)
+        questions_closed = Question.objects.filter(answers__is_correct=True, answers__user__user_id=user_id)
 
         ans = sorted(set(questions) - set(questions_closed))
         return ans[0] if len(ans) > 0 else 0
 
     @admin.display(description='Тема')
     def get_theme(self):
-        obj = Theme.objects.filter(test=self).first()
+        obj = Theme.objects.filter(tests=self).first()
         if obj is None:
             return 'Нет'
         else:
@@ -282,7 +294,8 @@ class Theme(models.Model):
     
     tests = models.ManyToManyField(
         Test,
-        related_name=_(u'test'),
+        related_name=_('themes'),
+        related_query_name=_('theme'),
         verbose_name=_(u'Тесты'),
         help_text=_(u'Тесты этой темы'),
         blank=True
@@ -309,7 +322,8 @@ class Theme(models.Model):
 class Answer(models.Model):
     question = models.OneToOneField(
         Question,
-        related_name=_(u'answer'),
+        related_name=_('answers'),
+        related_query_name=_('answer'),
         verbose_name=_(u'Вопрос'),
         help_text= _(u'Вопрос этого ответа'),
         on_delete=models.CASCADE, blank=True, null=True
@@ -317,6 +331,7 @@ class Answer(models.Model):
     user = models.OneToOneField(
         User,
         related_name=_(u'answer'),
+        related_query_name=_('answer'),
         verbose_name=_(u'Автор ответа'),
         help_text= _(u'Автор этого ответа'),
         on_delete=models.CASCADE, blank=True, null=True
@@ -366,10 +381,8 @@ class PaymentPlan(models.Model):
         }
 
     @staticmethod
-    def get_plans(promocode_id, u_id):
+    def get_plans(promocode_id):
         if promocode_id:
-            if Payment.objects.filter(promocode__id=promocode_id, user__id=u_id) > 0:
-                return None
             p = Promocode.objects.get(id=promocode_id)
             discount = 1 - p.discount / 100
             query = PaymentPlan.objects.filter(promocode__id=promocode_id)
@@ -380,19 +393,25 @@ class PaymentPlan(models.Model):
         ans = ''; names = []
         for plan in query:
             cost = plan.cost * discount
-            names.append({'gold_amount': plan.gold_amount, 'name': plan.short_name, 'cost': cost})
+            names.append({
+                'id': plan.id,
+                'gold_amount': plan.gold_amount, 
+                'name': plan.short_name, 
+                'cost': cost}
+            )
             ans += f'<bold>{plan.short_name}:</bold>\n'
             ans += f' - <bold>{plan.gold_amount}</bold> золотых\n'
             ans += f' - <bold>{cost}</bold> стоимость\n'
             ans += '----------'
 
-        return {'plans': ans[:-11]}, names
+        return {ans[:-11]: ['plans'] }, names
 
     @staticmethod
     def payment_details(promocode_id, plan_id):
         p = PaymentPlan.objects.get(id=plan_id)
-        d = p.to_flashtext
-        d['is_promocode'] = 'Применен' if promocode_id else 'Нет'
+        d = p.to_flashtext()
+        c = 'Применен' if promocode_id else 'Нет'
+        d[c] = ['is_promocode']
         n = {
             'name': p.short_name,
             'cost': p.cost,
@@ -427,23 +446,31 @@ class Promocode(models.Model):
         return f'{self.short_name}'
 
     def to_flashtext(self):
-        is_valid = 'Просрочен' if self.is_expired else 'Действует'
+        is_valid = 'Просрочен' if self.is_expired() else 'Действует'
         return  {
             self.short_name: ['promocode_name'],
             is_valid: ['is_valid'],
             self.text: ['promocode_text'],
             str(self.discount): ['promocode_discount']
         }
+
+    def is_expired(self):
+        if self.date_expire >= now() and self.clics_left > 0:
+            return False
+        else:
+            return True
    
     @staticmethod
     def is_promocode_valid(promocode: str, user_id: int) -> Optional[bool]:
-        promocode = _normalize_text(promocode.replace(' ', ''))
+        promocode = promocode.replace(' ', '')
         valid_promocode = Promocode.objects.filter(
             short_name=promocode,
             date_expire__gte=now(),
             clics_left__gt=0
         ).first()
-        payments = Payment.objects.count(user__user_id=user_id, promocode=promocode)
+        print(user_id, promocode, valid_promocode)
+        payments = Payment.objects.filter(user__user_id=user_id, promocode__short_name=promocode).count()
+        print(payments)
         if payments > 0:
             valid_promocode = None
         return valid_promocode
@@ -456,21 +483,24 @@ class Promocode(models.Model):
 class Payment(models.Model):
     user = models.OneToOneField(
         User,
-        related_name=_(u'user'),
+        related_name=_('payments'),
+        related_query_name=_('payment'),
         verbose_name=_(u'Пользователь'),
         help_text= _(u'Пользователь'),
         on_delete=models.SET_DEFAULT, blank=True, default='DELETED'
     )
     promocode = models.OneToOneField(
         Promocode,
-        related_name=_(u'promocode'),
+        related_name=_('payments'),
+        related_query_name=_('payment'),
         verbose_name=_(u'Промокод'),
         help_text= _(u'Промокод'),
         on_delete=models.SET_DEFAULT, blank=True, default=None, null=True
     )
     plan = models.OneToOneField(
         PaymentPlan,
-        related_name=_(u'paymentplan'),
+        related_name=_('payments'),
+        related_query_name=_('payment'),
         verbose_name=_(u'Вариант оплаты'),
         help_text= _(u'Вариант оплаты'),
         on_delete=models.SET_NULL, blank=True, null=True
@@ -501,6 +531,7 @@ class SupportMessage(models.Model):
     class Meta:
         verbose_name = _('Служебное сообщение')
         verbose_name_plural = _('Служебные сообщения')
+        ordering = ['role']
 
     def __str__(self) -> str:
         return f'Сообщение в: {self.role}'
@@ -508,8 +539,8 @@ class SupportMessage(models.Model):
     @staticmethod
     def get_message(cnt: HelpContext) -> SupportMessage:
         re = SupportMessage.objects.filter(role=cnt.role, is_active=True)
-        N = len(re)
-        msq = re[random.randint(0, N)]  if N > 1 else re[0]
+        N = len(re) - 1
+        msq = re[random.randint(0, N)]  if N > 0 else re[0]
 
         if cnt.keywords:
             keyword_processor = KeywordProcessor()
@@ -517,6 +548,13 @@ class SupportMessage(models.Model):
             msq.text = keyword_processor.replace_keywords(msq.text)
         
         return msq
+
+    @staticmethod
+    def replace_user_keywords(text, user_id):
+        u = User.objects.get(user_id=user_id)
+        keyword_processor = KeywordProcessor()
+        keyword_processor.add_keywords_from_dict(u.to_flashtext())
+        return keyword_processor.replace_keywords(text)
 
 
 
