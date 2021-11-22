@@ -20,7 +20,8 @@ from telegram.ext import (
     CallbackQueryHandler,
     ConversationHandler,
     ChatMemberHandler,
-    PreCheckoutQueryHandler
+    PreCheckoutQueryHandler,
+    PollAnswerHandler, PollHandler
 )
 
 from corporatum.celery import app  # event processing in async mode
@@ -78,7 +79,12 @@ def setup_dispatcher(dp):
         states={
             INER: [CallbackQueryHandler(runtest_handlers.run_test, pattern='run_test')], 
             QUESTIONS: [CallbackQueryHandler(runtest_handlers.show_question, pattern='^q_id-(\d)$')],
-            CATCH_ANSWER: [MessageHandler(Filters.text & ~Filters.command, runtest_handlers.catch_answer)],
+            CATCH_ANSWER: [
+                CallbackQueryHandler(runtest_handlers.receive_callback_answer, pattern='^ans-(\d)$'),
+                MessageHandler(Filters.text & ~Filters.command, runtest_handlers.receive_text_answer),
+                PollAnswerHandler(runtest_handlers.receive_poll_answer),
+                PollHandler(runtest_handlers.receive_quiz_answer),
+            ],
         },
         fallbacks=[
             CallbackQueryHandler(runtest_handlers.go_up, pattern='change-lvl|thems|get_gold|back'), # -> BACK|END
@@ -129,7 +135,7 @@ def setup_dispatcher(dp):
             GO: [run_test_handler],
         },
         fallbacks=[
-            CallbackQueryHandler(onboarding_handlers.done, pattern=f'back'), # -> END
+            CallbackQueryHandler(onboarding_handlers.done, pattern=f'^back$'), # -> END
             CommandHandler('stop', onboarding_handlers.stop), # -> STOPPING
         ],
         map_to_parent={

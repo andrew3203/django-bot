@@ -16,9 +16,6 @@ def show_thems(update: Update, context: CallbackContext) -> str:
     hcnt = context.user_data['hcnt']
     if update.callback_query:
         update.callback_query.answer('Выгрузка курсов')
-        message_id = update.callback_query.message.message_id
-    else:
-        message_id = update.message.message_id
     
     keyboard = []
     for theme in Theme.get_thems():
@@ -27,9 +24,8 @@ def show_thems(update: Update, context: CallbackContext) -> str:
     hcnt.to_top = True
     hcnt.role = 'all_thems'
     hcnt.action = 'edit_msg'
-    hcnt.navigation['message_id'] = message_id
+    hcnt = _do_message(hcnt, reply_markup=InlineKeyboardMarkup(keyboard))
     context.user_data['hcnt'] = hcnt
-    _do_message(hcnt, message_id, reply_markup=InlineKeyboardMarkup(keyboard))
     return CHOOSER
 
 
@@ -45,7 +41,6 @@ def show_test(update: Update, context: CallbackContext) -> str:
         one_time_keyboard=True, 
         resize_keyboard=True
     )
-    
     navigation['theme'] = theme_id
     hcnt = context.user_data['hcnt']
     hcnt.navigation = navigation
@@ -53,9 +48,7 @@ def show_test(update: Update, context: CallbackContext) -> str:
     hcnt.role = 'show_tests'
     hcnt.action = 'send_msg'
 
-    hcnt.navigation['message_id'] = query.message.message_id
-    context.user_data['hcnt'] = hcnt
-    _do_message(hcnt, reply_markup=markup)
+    context.user_data['hcnt'] = _do_message(hcnt, reply_markup=markup)
     return CHOOSE_TEST
 
 
@@ -71,7 +64,7 @@ def choose_test(update: Update, context: CallbackContext) -> str:
         markup =  ReplyKeyboardMarkup(keyboard, one_time_keyboard=True)
         hcnt.role = 'choose_test_error'
         hcnt.action = 'send_msg'
-        _do_message(hcnt, reply_markup=markup)
+        hcnt = _do_message(hcnt, reply_markup=markup)
     else:
         hcnt.navigation= {
             'theme': theme_id,
@@ -99,8 +92,8 @@ def send_lvl_choose(context: CallbackContext) -> str:
        
     hcnt.role = 'choose_lvl'
     hcnt.action = 'send_msg'
+    hcnt = _do_message(hcnt, reply_markup=InlineKeyboardMarkup(keyboard))
     context.user_data['hcnt'] = hcnt
-    _do_message(hcnt, reply_markup=InlineKeyboardMarkup(keyboard))
     return CHOOSER
 
 
@@ -111,7 +104,6 @@ def choose_lvl(update: Update, context: CallbackContext) -> str:
     hcnt = context.user_data['hcnt']
     theme_id = hcnt.navigation.get('theme')
     test_id = hcnt.navigation.get('test')
-    hcnt.navigation['message_id'] = query.message.message_id
     hcnt.navigation['lvl'] = query.data.split("-")[-1]
 
     test = Test.objects.get(id=test_id)
@@ -124,10 +116,8 @@ def choose_lvl(update: Update, context: CallbackContext) -> str:
             InlineKeyboardButton('Отмена', callback_data=f'back'),
             InlineKeyboardButton('Начать', callback_data=f'run_test'),
     ]])
-
     hcnt.role = 'show_user_choice'
     hcnt.action = 'edit_msg'
-    context.user_data['hcnt'] = hcnt
-    _do_message(hcnt, message_id=query.message.message_id, reply_markup=reply_markup)
+    context.user_data['hcnt'] = _do_message(hcnt, reply_markup=reply_markup)
     return GO
 

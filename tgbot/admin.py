@@ -171,7 +171,7 @@ class AnswerAdmin(admin.ModelAdmin):
         'time_to_solve',
         'user',
         'question'
-        )
+    )
 
 
 @admin.register(PaymentPlan)

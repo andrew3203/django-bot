@@ -1,6 +1,7 @@
 from telegram.ext import ConversationHandler
 
-
+# time then questions is avalible
+DELAY = 100
 
 END = ConversationHandler.END
 

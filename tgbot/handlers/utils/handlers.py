@@ -70,43 +70,51 @@ def _from_celery_entities_to_entities(celery_entities: Optional[List[Dict]] = No
 
 
 def _send_poll(
-    help_context: HelpContext,
+    text: str,
+    user_id: int,
     poll_type: None,
-    questions: list,
+    answers: list,
+    correct_option_id: None,
     tg_token: str = TELEGRAM_TOKEN,
-) -> HelpContext:
+) -> dict:
 
-    user_id = help_context.user_id
     bot = telegram.Bot(tg_token)
-    msg = SupportMessage.get_message(help_context)
 
     try:
         if poll_type == 'poll':
-            poll = bot.send_poll(
+            m = bot.send_poll(
                 chat_id=user_id,
-                text=msg.text,
-                questions=questions,
+                text=text,
+                questions=answers,
                 is_anonymous=False,
                 allows_multiple_answers=True,
             )
         else:
-            poll = bot.send_poll(
+            m = bot.send_poll(
                 chat_id=user_id,
-                text=msg.text,
-                questions=questions,
+                text=text,
+                questions=answers,
                 is_anonymous=False,
                 type=Poll.QUIZ, 
-                correct_option_id=2
+                correct_option_id=correct_option_id
             )
      
     except telegram.error.Unauthorized:
         print(f"Can't send message to {user_id}. Reason: Bot was stopped.")
         User.objects.filter(user_id=user_id).update(is_blocked_bot=True)
-        success = False
+        payload = {}
     else:
-        success = True
+        payload = {
+            m.poll.id: {
+                "answers": answers,
+                "message_id": m.message_id,
+                'poll_id': m.poll.id,
+                "chat_id": user_id,
+            },
+            user_id: {"message_id": m.message_id}
+        }
         User.objects.filter(user_id=user_id).update(is_blocked_bot=False)
-    return success
+    return payload
 
 
 

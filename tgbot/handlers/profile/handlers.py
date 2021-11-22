@@ -33,13 +33,11 @@ def ask_input(update: Update, context: CallbackContext) -> str:
     markup = InlineKeyboardMarkup(keyboard)
     if update.callback_query:
         update.callback_query.answer("Получено")
-        hcnt.navigation['message_id'] = update.callback_query.message.message_id
         hcnt.action = 'edit_msg'
     else:
         hcnt.action = 'send_msg'
     
-    context.user_data['hcnt'] = hcnt
-    _do_message(hcnt, message_id=hcnt.navigation['message_id'], reply_markup=markup)  
+    context.user_data['hcnt'] = _do_message(hcnt,reply_markup=markup)  
     return EDIT_MSG
 
 
@@ -49,10 +47,8 @@ def edit_msg(update: Update, context: CallbackContext) -> str:
     hcnt.action = 'edit_msg'
     hcnt.to_top = False
     hcnt.role = update.callback_query.data
-    hcnt.navigation['message_id'] = update.callback_query.message.message_id
 
-    context.user_data['hcnt'] = hcnt
-    _do_message(hcnt, reply_markup=None, message_id=hcnt.navigation['message_id'])
+    context.user_data['hcnt'] = _do_message(hcnt)
     return TYPING
 
 
@@ -64,7 +60,7 @@ def save_email(update: Update, context: CallbackContext) -> str:
         validate_email(email)
     except ValidationError as e:
         hcnt.role = 'email_error'
-        _do_message(hcnt)
+        context.user_data['hcnt'] = _do_message(hcnt)
         return TYPING
     else:
         user = User.get_user(update, context)
@@ -74,8 +70,7 @@ def save_email(update: Update, context: CallbackContext) -> str:
         user.save()
         hcnt.role = 'catch_data'
 
-        context.user_data['hcnt'] = hcnt
-        _do_message(hcnt)
+        context.user_data['hcnt'] = _do_message(hcnt)
         return ask_input(update, context)
 
 
@@ -90,7 +85,7 @@ def save_name(update: Update, context: CallbackContext) -> str:
         first_name, last_name = name.split(' ')
     except:
         hcnt.role = 'name_error'
-        _do_message(hcnt)
+        context.user_data['hcnt'] = _do_message(hcnt)
         return TYPING
     else:
         user = User.get_user(update, context)
@@ -100,14 +95,9 @@ def save_name(update: Update, context: CallbackContext) -> str:
             user.is_active = True
         user.save()
         hcnt.role = 'catch_data'
-        _do_message(hcnt)
-
-        context.user_data['hcnt'] = hcnt
+        context.user_data['hcnt'] = _do_message(hcnt)
         return ask_input(update, context)
 
 def go_back(update: Update, context: CallbackContext) -> str:
-    hcnt = context.user_data['hcnt']
-    hcnt.action = 'edit_msg'
-    hcnt.navigation['message_id'] = update.callback_query.message.message_id
-    context.user_data['hcnt'] = hcnt
+    context.user_data['hcnt'].action = 'edit_msg'
     return onboarding_handlers.done(update, context)

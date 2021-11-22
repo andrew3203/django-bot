@@ -12,28 +12,22 @@ from tgbot.models import SupportMessage, PaymentPlan, Promocode, do_payment
 
 def run_pay(update: Update, context: CallbackContext) ->str:
     hcnt = context.user_data['hcnt']
-    hcnt.navigation['message_id'] =  hcnt.navigation.get(
-        'message_id', 
-        update.callback_query.message.message_id
-    )
-    hcnt.role = 'pay_help'
-    hcnt.action='edit_msg'
     markup = InlineKeyboardMarkup([
             [InlineKeyboardButton('У меня есть промокод', callback_data='enter_promocode')],
             [InlineKeyboardButton('Перейти к оплате', callback_data='pay')]
     ])
-    _do_message(hcnt, message_id=hcnt.navigation['message_id'], reply_markup=markup)
+    hcnt.role = 'pay_help'
+    hcnt.action='edit_msg'
+    context.user_data['hcnt'] = _do_message(hcnt, reply_markup=markup)
     return PAYMENT_PREPARE
 
 
 def enter_promocode(update: Update, context: CallbackContext) ->str:
-    query = update.callback_query
+    update.callback_query.answer("Готово")
     hcnt = context.user_data['hcnt']
     hcnt.action = 'edit_msg'
     hcnt.role = 'enter_promocode'
-    hcnt.navigation['message_id'] = query.message.message_id
-    _do_message(hcnt, message_id=query.message.message_id)
-    context.user_data['hcnt'] = hcnt
+    context.user_data['hcnt'] =  _do_message(hcnt)
     return CATCH_PROMOCDE
 
 
@@ -48,8 +42,7 @@ def catch_promocode(update: Update, context: CallbackContext) -> str:
         }
         hcnt.role = 'promocode_correct'
         hcnt.navigation['promocode_id'] = valid_promocode.id
-        _do_message(hcnt, message_id=hcnt.navigation['message_id'])
-        context.user_data['hcnt'] = hcnt
+        context.user_data['hcnt'] = _do_message(hcnt)
         return choose_payment_type(update, context)
 
     else:
@@ -57,8 +50,7 @@ def catch_promocode(update: Update, context: CallbackContext) -> str:
         markup = InlineKeyboardMarkup([
             [InlineKeyboardButton('Оплатить без промокода', callback_data=f"pay")]
         ])
-        _do_message(hcnt, message_id=hcnt.navigation['message_id'], reply_markup=markup)
-        context.user_data['hcnt'] = hcnt
+        context.user_data['hcnt'] = _do_message(hcnt, reply_markup=markup)
         return CATCH_PROMOCDE
 
 
@@ -71,11 +63,10 @@ def choose_payment_type(update: Update, context: CallbackContext) -> str:
     hcnt.action = 'send_msg' if promocode_id else 'edit_msg'
     hcnt.keywords = {**hcnt.keywords, **p}
     markup = InlineKeyboardMarkup([
-        [InlineKeyboardButton(n['name'], callback_data=f"pmnt_type-{n['id']}")] for n in names
+        [InlineKeyboardButton(n['name'], callback_data=f"pmnt_type-{n['id']}")] 
+            for n in names
     ])
-    _do_message(hcnt, reply_markup=markup, message_id=hcnt.navigation['message_id'])
-
-    context.user_data['hcnt'] = hcnt
+    context.user_data['hcnt'] = _do_message(hcnt, reply_markup=markup)
     return PAY
 
 
@@ -117,7 +108,7 @@ def precheckout_callback(update: Update, context: CallbackContext) -> str:
         hcnt = context.user_data['hcnt']
         hcnt.role = 'error_payment'
         hcnt.action = 'error_payment' 
-        _do_message(hcnt)
+        context.user_data['hcnt'] = _do_message(hcnt)
         run_pay(update, context)
         return PAYMENT_PREPARE
     else:
@@ -137,6 +128,5 @@ def successful_payment_callback(update: Update, context: CallbackContext) -> Non
     markup = InlineKeyboardMarkup([
             [InlineKeyboardButton('К курсам', callback_data='thems')]
     ])
-    _do_message(hcnt, reply_markup=markup)
-    context.user_data['hcnt'] = hcnt
+    context.user_data['hcnt'] = _do_message(hcnt, reply_markup=markup)
     return END

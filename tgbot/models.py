@@ -1,10 +1,11 @@
 from __future__ import annotations
 from typing import Union, Optional, Tuple
+from django.db.models.deletion import CASCADE
 from flashtext import KeywordProcessor
 import math
 import unicodedata
 import random
-from datetime import time, timedelta, datetime
+from datetime import timedelta, datetime
 
 from django.db import models
 from django.contrib import admin
@@ -150,7 +151,14 @@ class Question(models.Model):
     def __str__(self):
         return self.short_name
 
-    
+    def __eq__(self, other):
+        return self.id == other.id
+
+    def __ne__(self, other):
+        return not self == other
+
+    def get_total_seconds(self):
+        return self.timer.hour*60*60 + self.timer.minute*60 + self.timer.second
 
     def to_flashtext(self):
         return {
@@ -161,11 +169,18 @@ class Question(models.Model):
         }
 
     def get_time_left(self, start_time):
-        end_time = self.timer + start_time
+        timer = timedelta(hours=self.timer.hour, minutes=self.timer.minute, seconds=self.timer.second)
+        end_time = start_time + timer
         time_left = (datetime.min + (end_time - now())).time()
-        return {'time_left': time_left.strftime("%H:%M:%S")}
+        return {time_left.strftime("%H:%M:%S"): ['time_left']}
 
-    def is_answer_correct(self, ans, user, start_time) -> bool:
+    def get_ans_variants(self):
+        return self.answer_variants.split(';')
+
+    def correct_option_id(self):
+        return 0
+
+    def save_and_check_answer(self, ans, user, start_time) -> bool:
         answers = self.right_answers.split(';')
         answers = list(map(_normalize_text, answers))
 
@@ -253,8 +268,8 @@ class Test(models.Model):
     @staticmethod
     def get_test_id():
         re = [o.id for o in Test.objects.filter(questions__difficulty_lvl=0)]
-        N = len(re)
-        return re[random.randint(0, N)]  if N > 1 else re[0]
+        N = len(re) - 1
+        return re[random.randint(0, N)]  if N > 0 else re[0]
 
     @staticmethod
     def tests_of_theme(theme_id):
@@ -264,20 +279,20 @@ class Test(models.Model):
         return d
 
     @staticmethod
-    def get_question(num, test_id) -> Optional[bool]:
-        questions = Question.objects.filter(tests___id=test_id)
-        if len(questions) > num:
-            return questions[num]
-        else:
-            return False
+    def get_question_id(num, test_id) -> Optional[bool]:
+        questions = Question.objects.filter(test__id=test_id)
+        ans = sorted(questions, key=lambda o: o.id)
+        return  ans[num].id if len(ans) > num else None
 
     @staticmethod
-    def get_new_question(user_id, test_id): # показать следующий не сделанный вопрос
-        questions = Question.objects.filter(tests___id=test_id)
-        questions_closed = Question.objects.filter(answers__is_correct=True, answers__user__user_id=user_id)
+    def get_new_question_id(user_id, test_id): # показать следующий не сделанный вопрос
+        questions = Question.objects.filter(test__id=test_id)
+        questions_closed = Question.objects.filter(answer__is_correct=True, answer__user__user_id=user_id)
 
-        ans = sorted(set(questions) - set(questions_closed))
-        return ans[0] if len(ans) > 0 else 0
+        k1 = list(map(lambda o: (o.id, o.short_name), questions))
+        k2 = list(map(lambda o: (o.id, o.short_name), questions_closed))
+        ans = sorted(set(k1) - set(k2), key=lambda o: o[0])
+        return Question.objects.get(id=ans[0][0]).id if len(ans) > 0 else None
 
     @admin.display(description='Тема')
     def get_theme(self):
@@ -320,7 +335,7 @@ class Theme(models.Model):
 
 
 class Answer(models.Model):
-    question = models.OneToOneField(
+    question = models.ForeignKey(
         Question,
         related_name=_('answers'),
         related_query_name=_('answer'),
@@ -328,7 +343,7 @@ class Answer(models.Model):
         help_text= _(u'Вопрос этого ответа'),
         on_delete=models.CASCADE, blank=True, null=True
     )
-    user = models.OneToOneField(
+    user = models.ForeignKey(
         User,
         related_name=_(u'answer'),
         related_query_name=_('answer'),
@@ -358,7 +373,6 @@ class Answer(models.Model):
         d2 = self.question.to_flashtext()
         d3 = self.user.to_flashtext()
         return {**d1, **d2, **d3}
-
 
 class PaymentPlan(models.Model):
     short_name = models.CharField(_(u'Название'), max_length=50, unique=True)
@@ -468,9 +482,7 @@ class Promocode(models.Model):
             date_expire__gte=now(),
             clics_left__gt=0
         ).first()
-        print(user_id, promocode, valid_promocode)
         payments = Payment.objects.filter(user__user_id=user_id, promocode__short_name=promocode).count()
-        print(payments)
         if payments > 0:
             valid_promocode = None
         return valid_promocode
