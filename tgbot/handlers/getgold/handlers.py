@@ -6,18 +6,25 @@ from telegram import (
 from telegram.ext import CallbackContext
 from tgbot.handlers.utils.handlers import _do_message
 from tgbot.handlers.utils.conf import *
-from tgbot.models import SupportMessage, PaymentPlan, Promocode, do_payment
+from tgbot.models import SupportMessage, PaymentPlan, Promocode, User, do_payment
 
 
 
 def run_pay(update: Update, context: CallbackContext) ->str:
     hcnt = context.user_data['hcnt']
-    markup = InlineKeyboardMarkup([
-            [InlineKeyboardButton('У меня есть промокод', callback_data='enter_promocode')],
-            [InlineKeyboardButton('Перейти к оплате', callback_data='pay')]
-    ])
-    hcnt.role = 'pay_help'
+    u = User.get_user(update, context)
     hcnt.action='edit_msg'
+
+    if not u.is_active:
+        hcnt.role = 'no_register'
+        markup = InlineKeyboardMarkup([[InlineKeyboardButton('Главное меню', callback_data='back')]])
+    else:
+        hcnt.role = 'pay_help'
+        markup = InlineKeyboardMarkup([
+                [InlineKeyboardButton('У меня есть промокод', callback_data='enter_promocode')],
+                [InlineKeyboardButton('Перейти к оплате', callback_data='pay')]
+        ])
+    
     context.user_data['hcnt'] = _do_message(hcnt, reply_markup=markup)
     return PAYMENT_PREPARE
 

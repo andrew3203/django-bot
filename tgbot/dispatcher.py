@@ -45,10 +45,7 @@ def setup_dispatcher(dp):
     Adding handlers for events from Telegram
     """
     get_gold_handler = ConversationHandler(
-        entry_points=[
-            CommandHandler('getgold', onboarding_handlers.get_gold),
-            CallbackQueryHandler(getgol_handlers.run_pay, pattern='get_gold')
-        ],
+        entry_points=[CallbackQueryHandler(getgol_handlers.run_pay, pattern='get_gold')],
         states={
             PAYMENT_PREPARE: [
                 CallbackQueryHandler(getgol_handlers.choose_payment_type, pattern='pay'),
@@ -66,37 +63,11 @@ def setup_dispatcher(dp):
         },
         fallbacks=[
             CommandHandler('stop', onboarding_handlers.stop), # -> STOPPING
+            CallbackQueryHandler(profile_handlers.go_back, pattern=f'back'), #  return END
+
         ],
         map_to_parent={
             END: SELECTING_LEVEL,
-            STOPPING: STOPPING,
-        }
-    )
-    run_test_handler = ConversationHandler(
-        entry_points=[
-            CallbackQueryHandler(runtest_handlers.run_test, pattern='run_first_test|run_test')
-        ], # выводим смс с правилами, кнопка первый вопрос
-        states={
-            INER: [CallbackQueryHandler(runtest_handlers.run_test, pattern='run_test')], 
-            QUESTIONS: [CallbackQueryHandler(runtest_handlers.show_question, pattern='^q_id-(\d)$')],
-            CATCH_ANSWER: [
-                CallbackQueryHandler(runtest_handlers.receive_callback_answer, pattern='^ans-(\d)$'),
-                MessageHandler(Filters.text & ~Filters.command, runtest_handlers.receive_text_answer),
-                PollAnswerHandler(runtest_handlers.receive_poll_answer),
-                PollHandler(runtest_handlers.receive_quiz_answer),
-            ],
-        },
-        fallbacks=[
-            CallbackQueryHandler(runtest_handlers.go_up, pattern='change-lvl|thems|get_gold|back'), # -> BACK|END
-            CallbackQueryHandler(runtest_handlers.finish_test, pattern='finish_test'), # -> done -> end
-            CommandHandler('stop', onboarding_handlers.stop), # -> STOPPING
-        ],
-        map_to_parent={
-            # Return to choose level menu
-            BACK: CHOOSER,
-            # Return to top level menu
-            END: SELECTING_LEVEL,
-            # End conversation altogether
             STOPPING: STOPPING,
         }
     )
@@ -120,11 +91,36 @@ def setup_dispatcher(dp):
             STOPPING: STOPPING,
         }
     )
-    courses_handler = ConversationHandler(
-        entry_points=[
-            CallbackQueryHandler(courses_handlers.show_thems, pattern='^thems$'),
-            CommandHandler('gostudy', onboarding_handlers.go_study),
+    run_test_handler = ConversationHandler(
+        entry_points=[ CallbackQueryHandler(runtest_handlers.run_test, pattern='run_first_test|run_test')],
+        states={
+            INER: [CallbackQueryHandler(runtest_handlers.run_test, pattern='run_test')], 
+            QUESTIONS: [CallbackQueryHandler(runtest_handlers.show_question, pattern='^q_id-(\d)$')],
+            CATCH_ANSWER: [
+                CallbackQueryHandler(runtest_handlers.receive_callback_answer, pattern='^ans-(\d)$'),
+                CallbackQueryHandler(runtest_handlers.show_question, pattern='^q_id-(\d)$'),
+                MessageHandler(Filters.text & ~Filters.command, runtest_handlers.receive_text_answer),
+                PollAnswerHandler(runtest_handlers.receive_poll_answer),
+                PollHandler(runtest_handlers.receive_quiz_answer),
+            ],
+            #BACK:[courses_handler],
+        },
+        fallbacks=[
+            CallbackQueryHandler(runtest_handlers.go_up, pattern='change-lvl|thems|get_gold|back'), # -> BACK|END
+            CallbackQueryHandler(runtest_handlers.finish_test, pattern='finish_test'), # -> done -> end
+            CommandHandler('stop', onboarding_handlers.stop), # -> STOPPING
         ],
+        map_to_parent={
+            # Return to choose level menu
+            BACK: CHOOSER,
+            # Return to top level menu
+            END: SELECTING_LEVEL,
+            # End conversation altogether
+            STOPPING: STOPPING,
+        }
+    )
+    courses_handler = ConversationHandler(
+        entry_points=[CallbackQueryHandler(courses_handlers.show_thems, pattern='^thems$')],
         states={
             CHOOSER: [
                 CallbackQueryHandler(courses_handlers.show_thems, pattern='^thems$'), # показываем все темы
@@ -146,25 +142,28 @@ def setup_dispatcher(dp):
         }
     )
     
+
     commands_handler = [
         CommandHandler('start', onboarding_handlers.start), 
-        CommandHandler('gostudy', onboarding_handlers.go_study), 
-        CommandHandler('getgold', onboarding_handlers.get_gold), 
         CommandHandler('help', onboarding_handlers.help), 
+        CommandHandler('addfriend', onboarding_handlers.add_friend), 
     ]
     conv_handler = ConversationHandler(
-        entry_points=commands_handler,
+        entry_points=[CommandHandler('start', onboarding_handlers.start)],
         states={
             SELECTING_LEVEL: [
                 profile_handler, 
                 run_test_handler,
                 get_gold_handler,
-                courses_handler
+                courses_handler,
+                CallbackQueryHandler(onboarding_handlers.help, pattern=f'help'),
             ],
-            CHECK_SUBSRIBE: [ChatMemberHandler(track_user.check_subscribe, ChatMemberHandler.CHAT_MEMBER)],
             STOPPING: commands_handler,
         },
-        fallbacks=[CallbackQueryHandler(onboarding_handlers.done, pattern=f'done|exit')]
+        fallbacks=[
+            CallbackQueryHandler(onboarding_handlers.stop, pattern=f'done|exit'),
+            CommandHandler('stop', onboarding_handlers.stop)
+        ]
     )
     
     # main handle
@@ -173,6 +172,10 @@ def setup_dispatcher(dp):
     # files
     dp.add_handler(MessageHandler(Filters.animation, files.show_file_id))
 
+    # track chat mabmer
+    dp.add_handler(ChatMemberHandler(track_user.tack_chat_members, ChatMemberHandler.CHAT_MEMBER))
+    # add friend command
+    dp.add_handler(CommandHandler('addfriend', onboarding_handlers.add_friend))
     # handling errors
     dp.add_error_handler(error.send_stacktrace_to_tg_chat)
 
@@ -218,15 +221,13 @@ def set_up_commands(bot_instance: Bot) -> None:
         'en': {
             'start': 'Start bot 🚀',
             'help': 'Need help ℹ️',
-            'gostudy': 'Start test ✅',
-            'getgold': 'Get gold 💎',
-            'stop': 'Stop the process 📛',
+            'addfriend': 'Invite Friend!',
+            'stop': 'Stop the process 📛'
         },
         'ru': {
             'start': 'Запустить бота 🚀',
             'help': 'Нужна помошь ℹ️',
-            'gostudy': 'Пройти тест ✅',
-            'getgold': 'Получить золото 💎',
+            'addfriend': 'Пригласить друзей!',
             'stop': 'Остановить процесс 📛',
         }
     }
@@ -243,7 +244,7 @@ def set_up_commands(bot_instance: Bot) -> None:
 
 # WARNING: it's better to comment the line below in DEBUG mode.
 # Likely, you'll get a flood limit control error, when restarting bot too often
-#set_up_commands(bot)
+set_up_commands(bot)
 
 n_workers = 0 if DEBUG else 4
 dispatcher = setup_dispatcher(Dispatcher(bot, update_queue=None, workers=n_workers, use_context=True))

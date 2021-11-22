@@ -28,13 +28,49 @@ admin.site.unregister(PeriodicTask)
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
     list_display = [
-        'user_id', 'username', 'first_name', 'last_name', 
-        'language_code', 'deep_link',
+        'username', 'first_name', 'last_name',
         'created_at', 'updated_at', "is_blocked_bot",
     ]
-    list_filter = ["is_blocked_bot", "is_moderator"]
-    search_fields = ('username', 'user_id')
+    list_filter = [
+        "is_blocked_bot", 
+        "is_moderator",
+        'is_admin',
+        'is_active',
+        'is_subscribed',
+        'language_code'
+    ]
 
+    search_fields = ('username', 'first_name', 'last_name')
+    fieldsets = (
+        ('О пользователе', {
+            'fields': (
+                ("username",),
+                ("first_name", "last_name"),
+                ("language_code", "email")
+            ),
+        }),
+        ('Статистика', {
+            'fields': (
+                ("gold"),
+            ),
+        }),
+        ('Дополнительная информаци', {
+            'fields': (
+                ("user_id", "created_at", "updated_at"),
+                ("is_banned",),
+                ("is_active", "is_admin", "is_moderator"),
+                ("is_blocked_bot", "is_subscribed", "deep_link")
+            ),
+        }),
+    )
+    readonly_fields = (
+        'user_id', 
+        'created_at', 
+        'updated_at',
+        'is_blocked_bot',
+        'is_subscribed',
+        'deep_link'
+    )
     actions = ['broadcast']
 
     def broadcast(self, request, queryset):

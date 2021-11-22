@@ -17,6 +17,7 @@ def send_stacktrace_to_tg_chat(update: Update, context) -> None:
    
     hcnt = context.user_data['hcnt']
     hcnt.action = 'delete_msg'
+    hcnt.role = 'enter_email' # костыль
     _do_message(hcnt)
     hcnt.action = 'send_msg'
     hcnt.role = 'BOT_ERROR'

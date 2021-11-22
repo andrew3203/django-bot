@@ -37,14 +37,14 @@ class User(CreateUpdateTracker):
     last_name = models.CharField(_('Фамилия'), max_length=256, **nb)
 
     gold = models.IntegerField(_('Золото'), blank=True, default=1)
-    date_joined = models.DateTimeField(_('Дата регистрации'), auto_now_add=True, blank=True)
     language_code = models.CharField(_('Язык'), max_length=8, **nb)
     deep_link = models.CharField(max_length=64, **nb)
 
     is_blocked_bot = models.BooleanField(_('Заблокировал бота'), default=False)
-    is_banned = models.BooleanField(_('Забанин'), default=False)
+    is_banned = models.BooleanField(_('Заблокирован в системе'), default=False)
+    is_subscribed = models.BooleanField(_('Подписан на канал'), default=False)
 
-    is_active = models.BooleanField(_('Активный'), default=False)
+    is_active = models.BooleanField(_('Прошел регистрацию'), default=False)
     is_admin = models.BooleanField(_('Администратор'), default=False)
     is_moderator = models.BooleanField(_('Модератор'), default=False)
     
@@ -54,7 +54,7 @@ class User(CreateUpdateTracker):
     class Meta:
         verbose_name = _('Пользователь')
         verbose_name_plural = _('Пользователи')
-        ordering = ['-date_joined']
+        ordering = ['updated_at']
         unique_together = [['user_id', 'email']]
 
     def to_flashtext(self):

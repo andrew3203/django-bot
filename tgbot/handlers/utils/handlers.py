@@ -178,7 +178,8 @@ def send_selecting_lvl(update: Update, context: CallbackContext):
             InlineKeyboardButton(hcnt.profile_status, callback_data='profile')
         ],
         [InlineKeyboardButton(u'Все курсы', callback_data='thems')],
-        [InlineKeyboardButton(u'Получить золото', callback_data='get_gold')]
+        [InlineKeyboardButton(u'Получить золото', callback_data='get_gold')],
+        [InlineKeyboardButton(u'Помошь', callback_data='help')],
     ])
     if update.callback_query is not None:
         update.callback_query.answer('Готово')

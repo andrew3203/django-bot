@@ -10,7 +10,7 @@ from telegram.ext import CallbackContext
 from tgbot.models import Test, User, Question
 from tgbot.handlers.utils.handlers import _do_message, _send_poll
 from tgbot.handlers.courses.handlers import send_lvl_choose, show_thems
-from tgbot.handlers.onboarding.handlers import done, get_gold
+from tgbot.handlers.onboarding.handlers import done
 from tgbot.handlers.utils.conf import *
 
 
@@ -262,10 +262,6 @@ def go_up(update: Update, context: CallbackContext) -> str:
     if query.data == 'change-lvl':
         send_lvl_choose(context)
         return BACK
-
-    elif query.data == 'get_gold':
-        get_gold(update, context)
-        return END
 
     elif query.data == 'thems':
         show_thems(update, context)

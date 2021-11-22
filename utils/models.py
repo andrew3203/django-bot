@@ -1,12 +1,14 @@
 from django.db import models
 from typing import Union, Optional, Tuple, Any
+from django.utils.translation import ugettext_lazy as _
+
 
 
 nb = dict(null=True, blank=True)
 
 
 class CreateTracker(models.Model):
-    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    created_at = models.DateTimeField(_('Дата регистрации'), auto_now_add=True, db_index=True)
 
     class Meta:
         abstract = True
@@ -14,7 +16,7 @@ class CreateTracker(models.Model):
 
 
 class CreateUpdateTracker(CreateTracker):
-    updated_at = models.DateTimeField(auto_now=True)
+    updated_at = models.DateTimeField(_('Последняя активнсоть'),auto_now=True)
 
     class Meta(CreateTracker.Meta):
         abstract = True
