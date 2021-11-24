@@ -1,12 +1,6 @@
 """
     Telegram event handlers
-    TODO:
-        - прогнать все в голове
-        - проверить все входы и выходы, не понятно с
-        - что с выбором сложности: до конца убедиться в типе
-        - дописать сохранение ответов из опросы и квиза
-        - убрать лишние зависимости
-        - настроить файлы
+      
 """
 import sys
 import logging
@@ -102,19 +96,20 @@ def setup_dispatcher(dp):
                 MessageHandler(Filters.text & ~Filters.command, runtest_handlers.receive_text_answer),
                 PollAnswerHandler(runtest_handlers.receive_poll_answer),
                 PollHandler(runtest_handlers.receive_quiz_answer),
+                CallbackQueryHandler(runtest_handlers.go_up, pattern='(change-lvl)|(thems)')
             ],
             #BACK:[courses_handler],
         },
         fallbacks=[
-            CallbackQueryHandler(runtest_handlers.go_up, pattern='change-lvl|thems|get_gold|back'), # -> BACK|END
+            CallbackQueryHandler(runtest_handlers.go_up, pattern='^back$'), # -> BACK|END
             CallbackQueryHandler(runtest_handlers.finish_test, pattern='finish_test'), # -> done -> end
             CommandHandler('stop', onboarding_handlers.stop), # -> STOPPING
         ],
         map_to_parent={
-            # Return to choose level menu
-            BACK: CHOOSER,
             # Return to top level menu
             END: SELECTING_LEVEL,
+            # Return to choose level menu
+            CHOOSER: CHOOSER,
             # End conversation altogether
             STOPPING: STOPPING,
         }
@@ -244,7 +239,7 @@ def set_up_commands(bot_instance: Bot) -> None:
 
 # WARNING: it's better to comment the line below in DEBUG mode.
 # Likely, you'll get a flood limit control error, when restarting bot too often
-set_up_commands(bot)
+#set_up_commands(bot)
 
 n_workers = 0 if DEBUG else 4
 dispatcher = setup_dispatcher(Dispatcher(bot, update_queue=None, workers=n_workers, use_context=True))

@@ -101,6 +101,7 @@ def add_friend(update: Update, context: CallbackContext) -> str:
         rearg = f'{ADD_FRIEND}-{u.user_id}'
         role = 'add_users_by_user'
     hcnt = context.user_data.get('hcnt', HelpContext(role=role, user_id=u.user_id, action='send_msg'))
+    hcnt.role = role
     url = helpers.create_deep_linked_url(bot.username, rearg)
     msg = SupportMessage.get_message(hcnt)
     keyboard = InlineKeyboardMarkup.from_button(InlineKeyboardButton(text="Запустить бота", url=url))

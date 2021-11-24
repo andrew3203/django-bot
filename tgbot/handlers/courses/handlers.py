@@ -113,7 +113,6 @@ def choose_lvl(update: Update, context: CallbackContext) -> str:
         **hcnt.keywords, **theme.to_flashtext(), **test.to_flashtext()
     }
     reply_markup = InlineKeyboardMarkup([[
-            InlineKeyboardButton('Отмена', callback_data=f'back'),
             InlineKeyboardButton('Начать', callback_data=f'run_test'),
     ]])
     hcnt.role = 'show_user_choice'

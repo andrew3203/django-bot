@@ -14,6 +14,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import now
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
+import logging
 
 from telegram import Update
 
@@ -554,10 +555,15 @@ class SupportMessage(models.Model):
         N = len(re) - 1
         msq = re[random.randint(0, N)]  if N > 0 else re[0]
 
+        with open('logs.txt', 'a+') as tracker:
+            dat = f'{cnt.role}\n'
+            tracker.write(dat)
+
         if cnt.keywords:
             keyword_processor = KeywordProcessor()
             keyword_processor.add_keywords_from_dict(cnt.keywords)
             msq.text = keyword_processor.replace_keywords(msq.text)
+
         
         return msq
 

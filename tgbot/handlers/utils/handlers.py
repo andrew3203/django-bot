@@ -74,7 +74,7 @@ def _send_poll(
     user_id: int,
     poll_type: None,
     answers: list,
-    correct_option_id: None,
+    correct_option_id: None = 0,
     tg_token: str = TELEGRAM_TOKEN,
 ) -> dict:
 
@@ -84,15 +84,16 @@ def _send_poll(
         if poll_type == 'poll':
             m = bot.send_poll(
                 chat_id=user_id,
-                text=text,
+                question=text,
                 questions=answers,
                 is_anonymous=False,
                 allows_multiple_answers=True,
+                correct_option_id=correct_option_id
             )
         else:
             m = bot.send_poll(
                 chat_id=user_id,
-                text=text,
+                question=text,
                 questions=answers,
                 is_anonymous=False,
                 type=Poll.QUIZ, 

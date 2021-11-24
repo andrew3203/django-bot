@@ -185,8 +185,6 @@ class AnswerAdmin(admin.ModelAdmin):
     list_display_links = ('question',)
     list_filter = (
         ('is_correct', admin.BooleanFieldListFilter),
-        ('user', admin.RelatedFieldListFilter),
-        ('question', admin.RelatedFieldListFilter),
     )
     fieldsets = (
         ('Информация об ответе', {

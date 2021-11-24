@@ -19,7 +19,7 @@ def run_test(update: Update, context: CallbackContext) -> str:
     query = update.callback_query
     query.answer('Готово')
     keyboard = [
-        [InlineKeyboardButton('Назад к курсам', callback_data=f'thems')],
+        [InlineKeyboardButton('К курсам', callback_data=f'thems')],
         [InlineKeyboardButton('Выйти', callback_data=f'back')]
     ]
     hcnt = context.user_data['hcnt']
@@ -43,7 +43,7 @@ def run_test(update: Update, context: CallbackContext) -> str:
             data = f'q_id-{q_id}'
             btn_name = 'Первый вопрос'
             new_q_id = Test.get_new_question_id(user.user_id, test_id)
-            if new_q_id and new_q_id > q_id:
+            if new_q_id and new_q_id != q_id:
                 keyboard[-1].append(InlineKeyboardButton('Начать c последнего', callback_data=f'q_id-{new_q_id}'))
         else:
             role = 'start_test_no_gold'
@@ -86,7 +86,7 @@ def show_question(update: Update, context: CallbackContext) -> str:
 
     if q.answer_type == q.AnswerType.FLY_BTN:
         keyboard1 = [[InlineKeyboardButton(v, callback_data=f'ans-{k}')] for k, v in enumerate(q.get_ans_variants())]
-        keyboard1 += keyboard
+        keyboard1.append(keyboard[0])
         hcnt = _do_message(hcnt, reply_markup=InlineKeyboardMarkup(keyboard1))
 
     elif q.answer_type == q.AnswerType.KB_BTN:
@@ -119,15 +119,18 @@ def show_question(update: Update, context: CallbackContext) -> str:
 def no_answer(context: CallbackContext) -> str:
     bot = context.job.context['bot']
     hcnt = context.job.context['hcnt']
-    print("NOoooo ANSWER CATHCED")
     q = Question.objects.get(id=hcnt.navigation['q_id'])
-    u = User.objects.get(iser_id=hcnt.user_id )
+    u = User.objects.get(user_id=hcnt.user_id )
     hcnt.keywords = {**u.to_flashtext(), **q.to_flashtext()}
-    bot.edit_message_text(f'Вопрос: {hcnt.navigation["q_num"]}', message_id=hcnt.message_id)
+    bot.edit_message_text(
+        f'Вопрос: {hcnt.navigation["q_num"]}', 
+        message_id=hcnt.message_id,
+        chat_id=hcnt.user_id
+    )
     hcnt.role = 'no_answer'
     hcnt.action = 'send_msg'
     hcnt = _do_message(hcnt)
-    return STOPPING
+  
 
 def receive_callback_answer(update: Update, context: CallbackContext) -> str:
     hcnt =  context.user_data['hcnt']
@@ -151,6 +154,7 @@ def receive_text_answer(update: Update, context: CallbackContext) -> str:
 
         if is_correct and q.answer_type == q.AnswerType.KB_BTN:
             cnt  ={'hcnt': hcnt, 'bot': context.bot, 'markup': ReplyKeyboardRemove()}
+            context.bot.delete_message(message_id=hcnt.navigation['KB_BTN_message_id'])
             context.job_queue.run_once(_delay_message_edit, DELAY, context=cnt)
             hcnt.action = 'send_msg' 
         elif is_correct:
@@ -226,7 +230,6 @@ def _check_answer(update: Update, context: CallbackContext, answer_text: str, q:
     hcnt =  context.user_data['hcnt']
     hcnt.role = 'show_answer'
     hcnt.keywords = {**user.to_flashtext(), **q.to_flashtext()}
-    print('ANS CATHCED:', answer_text, hcnt.navigation['start_time'])
     is_correct = q.save_and_check_answer(answer_text, user, hcnt.navigation['start_time'])
     cc = 'Да' if is_correct else 'Нет'
     hcnt.keywords[cc] = ['is_correct']
@@ -261,11 +264,11 @@ def go_up(update: Update, context: CallbackContext) -> str:
     query.answer('Готово')
     if query.data == 'change-lvl':
         send_lvl_choose(context)
-        return BACK
+        return CHOOSER
 
     elif query.data == 'thems':
         show_thems(update, context)
-        return BACK
+        return CHOOSER
 
     elif query.data == 'back':
         context.user_data['hcnt'].to_top = True
