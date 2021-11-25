@@ -99,6 +99,7 @@ def save_name(update: Update, context: CallbackContext) -> str:
         return ask_input(update, context)
 
 def go_back(update: Update, context: CallbackContext) -> str:
+    print('go_back')
     context.user_data['hcnt'].role = 'choose_todo'
     context.user_data['hcnt'].action = 'edit_msg'
     return onboarding_handlers.done(update, context)

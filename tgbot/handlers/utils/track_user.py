@@ -2,15 +2,14 @@ from telegram import Update, ChatMember, ChatMemberUpdated
 from telegram.ext import CallbackContext
 from tgbot.handlers.utils.conf import *
 from tgbot.models import User
-from tgbot.handlers.utils.handlers import _do_message, send_selecting_lvl
+from tgbot.handlers.utils.handlers import _do_message, send_selecting_lvl, remove_job_if_exists
 
 
 
 def is_user_subscribed(context: CallbackContext):
     hcnt = context.job.context
-    print('YES')
     user = User.objects.filter(user_id=hcnt.user_id).first()
-    if not user.is_subscribed:
+    if user and not user.is_subscribed:
         hcnt.role = 'whait_subscribe'
         _do_message(hcnt)
 
@@ -54,9 +53,7 @@ def tack_chat_members(update: Update, context: CallbackContext) -> None:
         if u and not was_member and is_member:
             u.is_subscribed = True
             u.save()
-            track_username = context.bot_data.get('track_usernames', [None])[-1]
-            if track_username == u.username:
-                del context.bot_data['track_usernames'][-1]
+            if remove_job_if_exists(f'{u.user_id}-checksubscribe', context):       
                 context.user_data['hcnt'].role = 'choose_todo'
                 send_selecting_lvl(update, context)
             #update.effective_chat.send_message(f"{member_name} was added by {cause_name}. Welcome!")

@@ -4,7 +4,7 @@ from telegram import (
     InlineKeyboardButton, InlineKeyboardMarkup,
 )
 from telegram.ext import CallbackContext
-from tgbot.handlers.utils.handlers import _do_message
+from tgbot.handlers.utils.handlers import _do_message, send_selecting_lvl
 from tgbot.handlers.utils.conf import *
 from tgbot.models import SupportMessage, PaymentPlan, Promocode, User, do_payment
 
@@ -89,20 +89,17 @@ def send_payment(update: Update, context: CallbackContext) ->str:
     hcnt.keywords = {**hcnt.keywords, **p}
     hcnt.role = 'send_invoice'
     msg = SupportMessage.get_message(hcnt)
-    prices = [LabeledPrice(f'{n["gold_amount"]} едениц золота:', 100*n['cost'])]
+    prices = [LabeledPrice(f'{n["gold_amount"]} едениц золота:', n['cost'])]
+    chat_id = query.message.chat_id
+    title = f'Покупка {n["gold_amount"]} едениц золота:'
+    description = msg.text
+    payload = "GetGold"
+    provider_token = PROVIDER_TOKEN
+    currency = "RUB"
     context.bot.send_invoice(
-        chat_id=query.message.chat_id,
-        title=f'Покупка {n["gold_amount"]} едениц золота:',
-        description=msg.text,
-        payload="GetGold",
-        provider_token=PROVIDER_TOKEN,
-        currency="RUB",
-        prices=prices,
-        need_phone_number=False,
-        need_email=False,
-        need_shipping_address=False,
-        is_flexible=False,
+        chat_id, title, description, payload, provider_token, currency, prices
     )
+
     context.user_data['hcnt'] = hcnt
     return PAY
 
@@ -110,6 +107,7 @@ def send_payment(update: Update, context: CallbackContext) ->str:
 def precheckout_callback(update: Update, context: CallbackContext) -> str:
     """Answers the PreQecheckoutQuery"""
     query = update.pre_checkout_query
+    query.answer(ok=True)
     if query.invoice_payload != 'GetGold':
         query.answer(ok=False, error_message="Возникла какая то ошибка...")
         hcnt = context.user_data['hcnt']
@@ -117,23 +115,22 @@ def precheckout_callback(update: Update, context: CallbackContext) -> str:
         hcnt.action = 'error_payment' 
         context.user_data['hcnt'] = _do_message(hcnt)
         run_pay(update, context)
-        return PAYMENT_PREPARE
+       
     else:
         query.answer(ok=True)
-        return PAY
 
 
 def successful_payment_callback(update: Update, context: CallbackContext) -> None:
     hcnt = context.user_data['hcnt']
     payment_plan_id = hcnt.navigation['plan_id']
-    promocode_id = hcnt.navigation['promocode_id']
+    promocode_id = hcnt.navigation.get('promocode_id', None)
     do_payment(hcnt.user_id, payment_plan_id, promocode_id)
 
     hcnt.navigation['promocode_id'] = None
     hcnt.action = 'send_msg'
     hcnt.role = 'payment_sucsess'
-    markup = InlineKeyboardMarkup([
-            [InlineKeyboardButton('К курсам', callback_data='thems')]
-    ])
-    context.user_data['hcnt'] = _do_message(hcnt, reply_markup=markup)
+    context.user_data['hcnt'] = _do_message(hcnt)
+    hcnt.role = 'choose_todo'
+    send_selecting_lvl(update, context)
     return END
+

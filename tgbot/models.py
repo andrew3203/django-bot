@@ -176,7 +176,7 @@ class Question(models.Model):
         return {time_left.strftime("%H:%M:%S"): ['time_left']}
 
     def get_ans_variants(self):
-        return self.answer_variants.split(';')
+        return [o for o in self.answer_variants.split(';')  if o != '']
 
     def correct_option_id(self):
         return 0
@@ -331,7 +331,7 @@ class Theme(models.Model):
         }
 
     @staticmethod
-    def get_thems():
+    def get_themes():
         return Theme.objects.filter(is_visible=True)
 
 
@@ -425,11 +425,17 @@ class PaymentPlan(models.Model):
     def payment_details(promocode_id, plan_id):
         p = PaymentPlan.objects.get(id=plan_id)
         d = p.to_flashtext()
-        c = 'Применен' if promocode_id else 'Нет'
+        if promocode_id:
+            c = 'Применен'
+            promocode = Promocode.objects.get(id=promocode_id)
+            cost = p.cost * (1 - promocode.discount / 100)
+        else:
+            c = 'Нет'
+            cost = p.cost
         d[c] = ['is_promocode']
         n = {
             'name': p.short_name,
-            'cost': p.cost,
+            'cost': int(cost * 100),
             'gold_amount': p.gold_amount,
         }
         return d, n
@@ -494,7 +500,7 @@ class Promocode(models.Model):
 
 
 class Payment(models.Model):
-    user = models.OneToOneField(
+    user = models.ForeignKey(
         User,
         related_name=_('payments'),
         related_query_name=_('payment'),
@@ -502,7 +508,7 @@ class Payment(models.Model):
         help_text= _(u'Пользователь'),
         on_delete=models.SET_DEFAULT, blank=True, default='DELETED'
     )
-    promocode = models.OneToOneField(
+    promocode = models.ForeignKey(
         Promocode,
         related_name=_('payments'),
         related_query_name=_('payment'),
@@ -510,7 +516,7 @@ class Payment(models.Model):
         help_text= _(u'Промокод'),
         on_delete=models.SET_DEFAULT, blank=True, default=None, null=True
     )
-    plan = models.OneToOneField(
+    plan = models.ForeignKey(
         PaymentPlan,
         related_name=_('payments'),
         related_query_name=_('payment'),
@@ -591,5 +597,6 @@ def do_payment(u_id, payment_plan_id, promocode_id):
         promocode.use_promocode()
 
     user.add_gold(plan)
+    user.save()
    
     

@@ -7,9 +7,6 @@ from telegram.utils import helpers
 
 from tgbot.handlers.utils.handlers import _do_message, send_selecting_lvl
 from tgbot.handlers.utils.track_user import is_user_subscribed
-from tgbot.handlers.profile.handlers import ask_input
-from tgbot.handlers.getgold.handlers import run_pay
-from tgbot.handlers.courses.handlers import show_thems
 
 from tgbot.handlers.utils.conf import *
 
@@ -43,10 +40,8 @@ def start(update: Update, context: CallbackContext) -> str:
             ]])
             hcnt.role = 'ask_subscribe'
             hcnt = _do_message(hcnt, reply_markup=reply_markup, disable_web_page_preview=True)
-            a = context.bot_data.get('track_usernames', [])   
-            a.append(u.username)   
-            context.bot_data['track_usernames'] = a
-            context.job_queue.run_once(is_user_subscribed, 15, context=hcnt)
+            name = f'{u.user_id}-checksubscribe'
+            context.job_queue.run_once(is_user_subscribed, 15, context=hcnt, name=name)
             context.user_data['hcnt'] = hcnt
         else:
             hcnt.profile_status = u'Мой профиль'
@@ -70,6 +65,7 @@ def help(update: Update, context: CallbackContext) -> str:
         to_top=False,
         navigation=dict()
     )
+    hcnt = context.user_data.get('hcnt', hcnt)
     context.user_data['hcnt'] = _do_message(hcnt)
     return STOPPING
 

@@ -73,7 +73,7 @@ def _send_poll(
     text: str,
     user_id: int,
     poll_type: None,
-    answers: list,
+    options: list,
     correct_option_id: None = 0,
     tg_token: str = TELEGRAM_TOKEN,
 ) -> dict:
@@ -85,18 +85,20 @@ def _send_poll(
             m = bot.send_poll(
                 chat_id=user_id,
                 question=text,
-                questions=answers,
+                options=options,
                 is_anonymous=False,
+                type=Poll.REGULAR, 
+                explanation='Test exsplanation',
                 allows_multiple_answers=True,
-                correct_option_id=correct_option_id
             )
         else:
             m = bot.send_poll(
                 chat_id=user_id,
                 question=text,
-                questions=answers,
+                options=options,
                 is_anonymous=False,
                 type=Poll.QUIZ, 
+                explanation='Test exsplanation',
                 correct_option_id=correct_option_id
             )
      
@@ -107,7 +109,7 @@ def _send_poll(
     else:
         payload = {
             m.poll.id: {
-                "answers": answers,
+                "answers": options,
                 "message_id": m.message_id,
                 'poll_id': m.poll.id,
                 "chat_id": user_id,
@@ -178,7 +180,7 @@ def send_selecting_lvl(update: Update, context: CallbackContext):
             InlineKeyboardButton(u'Пробный тест', callback_data='run_first_test'),
             InlineKeyboardButton(hcnt.profile_status, callback_data='profile')
         ],
-        [InlineKeyboardButton(u'Все курсы', callback_data='thems')],
+        [InlineKeyboardButton(u'Все курсы', callback_data='themes')],
         [InlineKeyboardButton(u'Получить золото', callback_data='get_gold')],
         [InlineKeyboardButton(u'Помошь', callback_data='help')],
     ])
@@ -187,3 +189,11 @@ def send_selecting_lvl(update: Update, context: CallbackContext):
     hcnt = _do_message(hcnt, reply_markup=markup)
     context.user_data['hcnt'] = hcnt
 
+def remove_job_if_exists(name: str, context: CallbackContext) -> bool:
+    """Remove job with given name. Returns whether job was removed."""
+    current_jobs = context.job_queue.get_jobs_by_name(name)
+    if not current_jobs:
+        return False
+    for job in current_jobs:
+        job.schedule_removal()
+    return True

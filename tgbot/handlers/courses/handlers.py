@@ -12,17 +12,17 @@ from tgbot.handlers.utils.handlers import _do_message
 
 
 
-def show_thems(update: Update, context: CallbackContext) -> str:
+def show_themes(update: Update, context: CallbackContext) -> str:
     hcnt = context.user_data['hcnt']
     if update.callback_query:
         update.callback_query.answer('Выгрузка курсов')
     
     keyboard = []
-    for theme in Theme.get_thems():
+    for theme in Theme.get_themes():
         keyboard.append([InlineKeyboardButton(theme.short_name, callback_data=f'theme-{theme.id}')])
     keyboard.append([InlineKeyboardButton('В меню', callback_data=f'back')])
     hcnt.to_top = True
-    hcnt.role = 'all_thems'
+    hcnt.role = 'all_themes'
     hcnt.action = 'edit_msg'
     hcnt = _do_message(hcnt, reply_markup=InlineKeyboardMarkup(keyboard))
     context.user_data['hcnt'] = hcnt
@@ -87,7 +87,7 @@ def send_lvl_choose(context: CallbackContext) -> str:
 
     keyboard.append([
         InlineKeyboardButton('Темы', callback_data=f'theme-{theme_id}'),
-        InlineKeyboardButton('Курсы', callback_data='thems'),
+        InlineKeyboardButton('Курсы', callback_data='themes'),
     ])
        
     hcnt.role = 'choose_lvl'

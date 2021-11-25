@@ -15,7 +15,7 @@ from telegram.ext import (
     ConversationHandler,
     ChatMemberHandler,
     PreCheckoutQueryHandler,
-    PollAnswerHandler, PollHandler
+    PollAnswerHandler, PollHandler, ShippingQueryHandler
 )
 
 from corporatum.celery import app  # event processing in async mode
@@ -32,7 +32,12 @@ from tgbot.handlers.runtest import handlers as runtest_handlers
 from tgbot.handlers.profile import handlers as profile_handlers
 
 
+# Enable logging
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
+)
 
+logger = logging.getLogger(__name__)
 
 def setup_dispatcher(dp):
     """
@@ -50,14 +55,13 @@ def setup_dispatcher(dp):
                 MessageHandler(Filters.text & ~Filters.command, getgol_handlers.catch_promocode)
             ],
             PAY: [
-                CallbackQueryHandler(getgol_handlers.send_payment, pattern='^pmnt_type-(\d)$'),
-                PreCheckoutQueryHandler(getgol_handlers.precheckout_callback),
+                CallbackQueryHandler(getgol_handlers.send_payment, pattern='^pmnt_type-(\d+)$'),
                 MessageHandler(Filters.successful_payment, getgol_handlers.successful_payment_callback)
             ],
         },
         fallbacks=[
             CommandHandler('stop', onboarding_handlers.stop), # -> STOPPING
-            CallbackQueryHandler(profile_handlers.go_back, pattern=f'back'), #  return END
+            CallbackQueryHandler(profile_handlers.go_back, pattern='^back$'), #  return END
 
         ],
         map_to_parent={
@@ -68,7 +72,7 @@ def setup_dispatcher(dp):
     profile_handler = ConversationHandler(
         entry_points=[CallbackQueryHandler(profile_handlers.ask_input, pattern='^profile$')],
         states={
-            EDIT_MSG: [CallbackQueryHandler(profile_handlers.edit_msg, pattern='enter_name|enter_email')],
+            EDIT_MSG: [CallbackQueryHandler(profile_handlers.edit_msg, pattern='(enter_name)|(enter_email)')],
             TYPING: [
                 MessageHandler(Filters.regex("[^@]+@[^@]+\.[^@]+"), profile_handlers.save_email), 
                 MessageHandler(Filters.regex(u"(\w+)\s(\w+)"), profile_handlers.save_name), 
@@ -86,23 +90,21 @@ def setup_dispatcher(dp):
         }
     )
     run_test_handler = ConversationHandler(
-        entry_points=[ CallbackQueryHandler(runtest_handlers.run_test, pattern='run_first_test|run_test')],
+        entry_points=[ CallbackQueryHandler(runtest_handlers.run_test, pattern='^(run_first_test)|(run_test)$')],
         states={
-            INER: [CallbackQueryHandler(runtest_handlers.run_test, pattern='run_test')], 
-            QUESTIONS: [CallbackQueryHandler(runtest_handlers.show_question, pattern='^q_id-(\d)$')],
+            INER: [CallbackQueryHandler(runtest_handlers.run_test, pattern='^run_test$')], 
+            QUESTIONS: [CallbackQueryHandler(runtest_handlers.show_question, pattern='^q_id-(\d+)$')],
             CATCH_ANSWER: [
-                CallbackQueryHandler(runtest_handlers.receive_callback_answer, pattern='^ans-(\d)$'),
-                CallbackQueryHandler(runtest_handlers.show_question, pattern='^q_id-(\d)$'),
+                CallbackQueryHandler(runtest_handlers.receive_callback_answer, pattern='^ans-(\d+)$'),
+                CallbackQueryHandler(runtest_handlers.show_question, pattern='^q_id-(\d+)$'),
                 MessageHandler(Filters.text & ~Filters.command, runtest_handlers.receive_text_answer),
-                PollAnswerHandler(runtest_handlers.receive_poll_answer),
-                PollHandler(runtest_handlers.receive_quiz_answer),
-                CallbackQueryHandler(runtest_handlers.go_up, pattern='(change-lvl)|(thems)')
+                CallbackQueryHandler(runtest_handlers.go_up, pattern='^(change-lvl)|(themes)$')
             ],
             #BACK:[courses_handler],
         },
         fallbacks=[
             CallbackQueryHandler(runtest_handlers.go_up, pattern='^back$'), # -> BACK|END
-            CallbackQueryHandler(runtest_handlers.finish_test, pattern='finish_test'), # -> done -> end
+            CallbackQueryHandler(runtest_handlers.finish_test, pattern='^finish_test$'), # -> done -> end
             CommandHandler('stop', onboarding_handlers.stop), # -> STOPPING
         ],
         map_to_parent={
@@ -115,12 +117,12 @@ def setup_dispatcher(dp):
         }
     )
     courses_handler = ConversationHandler(
-        entry_points=[CallbackQueryHandler(courses_handlers.show_thems, pattern='^thems$')],
+        entry_points=[CallbackQueryHandler(courses_handlers.show_themes, pattern='^themes$')],
         states={
             CHOOSER: [
-                CallbackQueryHandler(courses_handlers.show_thems, pattern='^thems$'), # показываем все темы
-                CallbackQueryHandler(courses_handlers.show_test, pattern='^theme-(\d)$'), # получаем тему, открываем тесты
-                CallbackQueryHandler(courses_handlers.choose_lvl, pattern='^lvl-(\d)$'), # кнопки сложность, начать кнопки назад, начать
+                CallbackQueryHandler(courses_handlers.show_themes, pattern='^themes$'), # показываем все темы
+                CallbackQueryHandler(courses_handlers.show_test, pattern='^theme-(\d+)$'), # получаем тему, открываем тесты
+                CallbackQueryHandler(courses_handlers.choose_lvl, pattern='^lvl-(\d+)$'), # кнопки сложность, начать кнопки назад, начать
             ], 
             CHOOSE_TEST: [MessageHandler(Filters.text & ~Filters.command, courses_handlers.choose_test)],  # получаем тест, открываем уровень
             GO: [run_test_handler],
@@ -156,21 +158,27 @@ def setup_dispatcher(dp):
             STOPPING: commands_handler,
         },
         fallbacks=[
-            CallbackQueryHandler(onboarding_handlers.stop, pattern=f'done|exit'),
+            CallbackQueryHandler(onboarding_handlers.stop, pattern=f'^(done)|(exit)$'),
             CommandHandler('stop', onboarding_handlers.stop)
         ]
     )
-    
+
     # main handle
     dp.add_handler(conv_handler)
-  
-    # files
-    dp.add_handler(MessageHandler(Filters.animation, files.show_file_id))
 
     # track chat mabmer
     dp.add_handler(ChatMemberHandler(track_user.tack_chat_members, ChatMemberHandler.CHAT_MEMBER))
     # add friend command
     dp.add_handler(CommandHandler('addfriend', onboarding_handlers.add_friend))
+    # payments handle
+    dp.add_handler(PreCheckoutQueryHandler(getgol_handlers.precheckout_callback))
+    # polls handle
+    dp.add_handler(PollAnswerHandler(runtest_handlers.receive_poll_answer))
+    dp.add_handler(PollHandler(runtest_handlers.receive_quiz_answer))
+
+    # files
+    dp.add_handler(MessageHandler(Filters.animation, files.show_file_id))
+    
     # handling errors
     dp.add_error_handler(error.send_stacktrace_to_tg_chat)
 
@@ -217,7 +225,7 @@ def set_up_commands(bot_instance: Bot) -> None:
             'start': 'Start bot 🚀',
             'help': 'Need help ℹ️',
             'addfriend': 'Invite Friend!',
-            'stop': 'Stop the process 📛'
+            'stop': 'Stop the process 📛',
         },
         'ru': {
             'start': 'Запустить бота 🚀',

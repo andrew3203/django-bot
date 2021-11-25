@@ -31,7 +31,8 @@ class HelpContext(object):
         to_top: bool = False, 
         keywords: dict = None, 
         navigation: dict = None, 
-        profile_status: str = None
+        profile_status: str = None,
+        jobs_names: list = []
     ) -> None:
         super().__init__()
         
@@ -43,6 +44,7 @@ class HelpContext(object):
         self.keywords = keywords
         self.profile_status = profile_status
         self.role: str = role
+        self.jobs_names = jobs_names
 
         
 
