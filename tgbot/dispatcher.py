@@ -120,7 +120,7 @@ def setup_dispatcher(dp):
         entry_points=[CallbackQueryHandler(courses_handlers.show_themes, pattern='^themes$')],
         states={
             CHOOSER: [
-                CallbackQueryHandler(courses_handlers.show_themes, pattern='^themes$'), # показываем все темы
+                #CallbackQueryHandler(courses_handlers.show_themes, pattern='^themes$'), # показываем все темы
                 CallbackQueryHandler(courses_handlers.show_test, pattern='^theme-(\d+)$'), # получаем тему, открываем тесты
                 CallbackQueryHandler(courses_handlers.choose_lvl, pattern='^lvl-(\d+)$'), # кнопки сложность, начать кнопки назад, начать
             ], 
@@ -174,7 +174,7 @@ def setup_dispatcher(dp):
     dp.add_handler(PreCheckoutQueryHandler(getgol_handlers.precheckout_callback))
     # polls handle
     dp.add_handler(PollAnswerHandler(runtest_handlers.receive_poll_answer))
-    dp.add_handler(PollHandler(runtest_handlers.receive_quiz_answer))
+    dp.add_handler(PollAnswerHandler(runtest_handlers.receive_quiz_answer))
 
     # files
     dp.add_handler(MessageHandler(Filters.animation, files.show_file_id))

@@ -7,7 +7,7 @@ ADD_FRIEND = 'add-by-user'
 
 
 # time then questions is avalible
-DELAY = 100
+DELAY = 30
 
 END = ConversationHandler.END
 

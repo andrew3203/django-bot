@@ -10,7 +10,7 @@ from datetime import timedelta, datetime
 from django.db import models
 from django.contrib import admin
 from django.db.models import QuerySet
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import activate, ugettext_lazy as _
 from django.utils.timezone import now
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
@@ -152,12 +152,6 @@ class Question(models.Model):
     def __str__(self):
         return self.short_name
 
-    def __eq__(self, other):
-        return self.id == other.id
-
-    def __ne__(self, other):
-        return not self == other
-
     def get_total_seconds(self):
         return self.timer.hour*60*60 + self.timer.minute*60 + self.timer.second
 
@@ -184,24 +178,30 @@ class Question(models.Model):
     def save_and_check_answer(self, ans, user, start_time) -> bool:
         answers = self.right_answers.split(';')
         answers = list(map(_normalize_text, answers))
+        ans_to_print = ''
 
-        if self.answer_type == self.AnswerType.FLY_BTN:
+        if self.answer_type in [self.AnswerType.FLY_BTN, self.AnswerType.KB_BTN]:
             ans = _normalize_text(ans)
+            ans_to_print = ans
             is_correct = True if ans in answers else False
 
         elif self.answer_type == self.AnswerType.POLL:
             ans = list(map(_normalize_text, ans))
+            ans_to_print = ', '.join(ans)
             is_correct = True if len(set(ans) and set(answers)) > 0 else False
 
-        elif self.answer_type in [self.AnswerType.WORD, self.AnswerType.KB_BTN]:
+        elif self.answer_type == self.AnswerType.WORD:
             ans = _normalize_text(ans.replace(' ', ''))
+            ans_to_print = ans
             is_correct = True if ans in answers else False
 
         elif self.answer_type == self.AnswerType.SENTENSE:
             is_correct = True if len(ans) > 0 else False
+            ans_to_print = 'ответ принят'
 
         elif self.answer_type == self.AnswerType.QUIZ:
             is_correct, ans = ans
+            ans_to_print = ans
 
         time_to_solve = (datetime.min + (now() - start_time)).time()
         ans = Answer.objects.create(
@@ -213,7 +213,7 @@ class Question(models.Model):
         )
         ans.save()
 
-        return is_correct
+        return is_correct, ans_to_print
 
     def get_difficulty_lvl_name(self):
         return str(dict(self.DifficultyLvl.choices).get(self.difficulty_lvl))
@@ -275,15 +275,14 @@ class Test(models.Model):
     @staticmethod
     def tests_of_theme(theme_id):
         d = {}
-        for t in Test.objects.filter(theme__id=theme_id):
+        for t in Test.objects.filter(theme__id=theme_id, is_visible=True):
                 d[t.short_name] = t.id
         return d
 
     @staticmethod
     def get_question_id(num, test_id) -> Optional[bool]:
         questions = Question.objects.filter(test__id=test_id)
-        ans = sorted(questions, key=lambda o: o.id)
-        return  ans[num].id if len(ans) > num else None
+        return  questions[num].id if len(questions) > num else None
 
     @staticmethod
     def get_new_question_id(user_id, test_id): # показать следующий не сделанный вопрос
@@ -292,7 +291,7 @@ class Test(models.Model):
 
         k1 = list(map(lambda o: (o.id, o.short_name), questions))
         k2 = list(map(lambda o: (o.id, o.short_name), questions_closed))
-        ans = sorted(set(k1) - set(k2), key=lambda o: o[0])
+        ans = sorted(set(k1) - set(k2), key=lambda o: o[1])
         return Question.objects.get(id=ans[0][0]).id if len(ans) > 0 else None
 
     @admin.display(description='Тема')

@@ -3,7 +3,6 @@ from telegram import (
     Update,
     InlineKeyboardButton, InlineKeyboardMarkup,
     KeyboardButton, ReplyKeyboardMarkup,
-    ReplyKeyboardRemove
 )
 from telegram.ext import CallbackContext
 
@@ -74,12 +73,12 @@ def show_question(update: Update, context: CallbackContext) -> str:
     u.gold -= q.difficulty_lvl
 
     hcnt = context.user_data['hcnt']
-    if remove_job_if_exists(f'{u.user_id}-trackquestion', context):
-        last_q_id = hcnt.navigation['last_q']
-        remove_job_if_exists(f'{hcnt.user_id}-{last_q_id}-delaymessageedit', context)
-        hcnt.role = 'no_answer'
-        hcnt.action = 'edit_msg'
-        hcnt = _do_message(hcnt)
+    if remove_job_if_exists(f'{hcnt.user_id}-trackquestion', context):
+        if q.answer_type == q.AnswerType.KB_BTN:
+            context.bot.delete_message(
+                    chat_id=hcnt.user_id, 
+                    message_id=hcnt.navigation['KB_BTN_message_id'],
+            )
 
     hcnt.keywords = {**hcnt.keywords , **u.to_flashtext(), **q.to_flashtext()}
     hcnt.role = 'show_question'
@@ -101,6 +100,8 @@ def show_question(update: Update, context: CallbackContext) -> str:
 
     elif q.answer_type == q.AnswerType.KB_BTN:
         hcnt = _do_message(hcnt, reply_markup=InlineKeyboardMarkup(keyboard))
+        print(hcnt.message_id)
+
         keyboard1 = [[KeyboardButton(v)] for v in q.get_ans_variants()]
         markup = ReplyKeyboardMarkup(keyboard1, one_time_keyboard=True, resize_keyboard=True)
         m = query.message.reply_text(text='Выберете выриант на клавиатуре', reply_markup=markup)
@@ -122,6 +123,7 @@ def show_question(update: Update, context: CallbackContext) -> str:
     elif q.answer_type in [q.AnswerType.SENTENSE, q.AnswerType.WORD]:
         hcnt = _do_message(hcnt, reply_markup=InlineKeyboardMarkup(keyboard))
     
+    hcnt.prev_answer_type = q.answer_type
     cnt = {'hcnt': hcnt, 'bot': context.bot}
     name = f'{hcnt.user_id}-trackquestion'
     context.user_data['hcnt'] = hcnt
@@ -133,61 +135,73 @@ def no_answer(context: CallbackContext) -> str:
     hcnt = context.job.context['hcnt']
     q = Question.objects.get(id=hcnt.navigation['q_id'])
     remove_job_if_exists(f'{hcnt.user_id}-{q.id}-delaymessageedit', context)
-    u = User.objects.get(user_id=hcnt.user_id )
-    hcnt.keywords = {**u.to_flashtext(), **q.to_flashtext()}
     bot.edit_message_text(
         f'Вопрос: {hcnt.navigation["q_num"]}', 
         message_id=hcnt.message_id,
         chat_id=hcnt.user_id
     )
+    if q.answer_type == q.AnswerType.KB_BTN:
+        context.bot.delete_message(
+                chat_id=hcnt.user_id, 
+                message_id=hcnt.navigation['KB_BTN_message_id'],
+        )
+    u = User.objects.get(user_id=hcnt.user_id )
+    hcnt.keywords = {**hcnt.keywords, **u.to_flashtext(), **q.to_flashtext()}
     hcnt.role = 'no_answer'
     hcnt.action = 'send_msg'
     hcnt = _do_message(hcnt)
   
-
 def receive_callback_answer(update: Update, context: CallbackContext) -> str:
     hcnt =  context.user_data['hcnt']
     q = Question.objects.get(id=hcnt.navigation['q_id'])
     print('receive callback answer: ', q.id, q.answer_type)
-    if q.answer_type == q.AnswerType.FLY_BTN:
-        ans_num = int(update.callback_query.data.split('-')[-1])
-        answer_text = q.get_ans_variants()[ans_num]
-        hcnt, markup, _, re = _check_answer(update, context, answer_text, q)
-        print('answer checked:', update.callback_query.data, ans_num, _, re)
-        hcnt.action = 'edit_msg' 
-        context.user_data['hcnt'] = _do_message(hcnt, reply_markup=markup)
-        return re
-    else:
-        return END
+    ans_num = int(update.callback_query.data.split('-')[-1])
+    answer_text = q.get_ans_variants()[ans_num]
+    hcnt, markup, _, re = _check_answer(update, context, answer_text, q)
+    print('answer checked:', update.callback_query.data, ans_num, _, re)
+    hcnt.action = 'edit_msg' 
+    context.user_data['hcnt'] = _do_message(hcnt, reply_markup=markup)
+    return re
 
 def receive_text_answer(update: Update, context: CallbackContext) -> str:
     hcnt =  context.user_data['hcnt']
-    q = Question.objects.get(id=hcnt.navigation['q_id'])
+    print(hcnt.message_id)
+    q = Question.objects.filter(id=hcnt.navigation['q_id']).first()
     print('receive text answer: ', q.id, q.answer_type)
-    if q.answer_type in [q.AnswerType.WORD, q.AnswerType.KB_BTN, q.AnswerType.SENTENSE]:
-        answer_text = update.message.text
+    answer_text = update.message.text
+
+    if q and q.answer_type in [q.AnswerType.WORD, q.AnswerType.KB_BTN, q.AnswerType.SENTENSE]:
         hcnt, markup, is_correct, re = _check_answer(update, context, answer_text, q)
+        print(hcnt.message_id)
         print('answer checked:', answer_text, is_correct, re)
 
-        if is_correct and q.answer_type == q.AnswerType.KB_BTN:
-            context.bot.delete_message(
-                chat_id=hcnt.user_id, 
-                message_id=hcnt.navigation['KB_BTN_message_id'],
-            )
+        if is_correct:
+            if q.answer_type == q.AnswerType.KB_BTN:
+                context.bot.delete_message(
+                    chat_id=hcnt.user_id, 
+                    message_id=hcnt.navigation['KB_BTN_message_id'],
+                )
+            # set timer to delete question text
+            cnt = {'hcnt': hcnt, 'bot': context.bot}
+            name = f'{hcnt.user_id}-{q.id}-delaymessageedit'
+            print(hcnt.message_id)
+            context.job_queue.run_once(_delay_message_edit, DELAY, context=cnt, name=name)
+
             hcnt.action = 'send_msg' 
-        elif is_correct:
-            hcnt.action = 'send_msg' 
+            context.user_data['hcnt'] = _do_message(hcnt, reply_markup=markup)
+           
         else:
             hcnt.action = 'edit_msg' 
-        context.user_data['hcnt'] = _do_message(hcnt, reply_markup=markup)
+            context.user_data['hcnt'] = _do_message(hcnt, reply_markup=markup)
         return re
     else:
-        return END
+        return CATCH_ANSWER
 
 def receive_poll_answer(update: Update, context: CallbackContext) -> None:
     """Summarize a user poll vote"""
     answer = update.poll_answer
-    poll_data = context.bot_data[update.poll.id]
+    poll_id = answer.poll_id
+    poll_data = context.bot_data[poll_id]
     hcnt =  context.user_data['hcnt']
     q = Question.objects.get(id=hcnt.navigation['q_id'])
     print('receive poll answer: ', q.id, q.answer_type)
@@ -211,7 +225,8 @@ def receive_poll_answer(update: Update, context: CallbackContext) -> None:
 def receive_quiz_answer(update: Update, context: CallbackContext) -> None:
     """Summarize a user quiz vote"""
     answer = update.poll_answer
-    poll_data = context.bot_data[update.poll.id]
+    poll_id = answer.poll_id
+    poll_data = context.bot_data[poll_id]
     hcnt =  context.user_data['hcnt']
     q = Question.objects.get(id=hcnt.navigation['q_id'])
     print('receive quiz answer: ', q.id, q.answer_type)
@@ -238,19 +253,29 @@ def _delay_message_edit(context: CallbackContext):
     )
 
 def _check_answer(update: Update, context: CallbackContext, answer_text: str, q: Question) -> str:
-    user = User.get_user(update, context)
     hcnt =  context.user_data['hcnt']
-    hcnt.role = 'show_answer'
-    hcnt.keywords = {**user.to_flashtext(), **q.to_flashtext()}
-    is_correct = q.save_and_check_answer(answer_text, user, hcnt.navigation['start_time'])
+    user = User.objects.get(user_id=hcnt.user_id)
+
+    is_correct, ans = q.save_and_check_answer(answer_text, user, hcnt.navigation['start_time'])
     cc = 'Да' if is_correct else 'Нет'
     hcnt.keywords[cc] = ['is_correct']
+    hcnt.keywords[ans] = ['answer']
+    hcnt.keywords = {**hcnt.keywords, **user.to_flashtext(), **q.to_flashtext()}
+
+    if is_correct:
+        remove_job_if_exists(f'{hcnt.user_id}-trackquestion', context)
+        hcnt.role = 'answer_correct'
+    else:
+        hcnt.role = 'answer_incorrect'
+        time_left_dict = q.get_time_left(hcnt.navigation['start_time'])
+        hcnt.keywords = { **hcnt.keywords, **time_left_dict}
+        re =  CATCH_ANSWER
 
     keybord = [[InlineKeyboardButton('Выйти', callback_data='back')]]
     new_q_id = Test.get_question_id(hcnt.navigation['q_num'] + 1,  hcnt.navigation['test'])
     if new_q_id:
         hcnt.navigation['q_num'] += 1
-        data = f'q_id-{new_q_id}'; btn_text = 'Следующий вопрос'
+        btn_text = 'Следующий вопрос'; data = f'q_id-{new_q_id}'
         re = QUESTIONS
     else:
         btn_text = 'Закончить тест'; data = f'finish_test'
@@ -258,32 +283,21 @@ def _check_answer(update: Update, context: CallbackContext, answer_text: str, q:
         re = INER
     keybord.append([InlineKeyboardButton(btn_text, callback_data=data)])
 
-    if is_correct:
-        remove_job_if_exists(f'{hcnt.user_id}-trackquestion', context)
-        cnt = {'hcnt': hcnt, 'bot': context.bot}
-        name = f'{hcnt.user_id}-{q.id}-delaymessageedit'
-        context.job_queue.run_once(_delay_message_edit, DELAY, context=cnt, name=name)
-        hcnt.role = 'show_answer'
-    else:
-        hcnt.role = 'answer_incorrect'
-        time_left_dict = q.get_time_left(hcnt.navigation['start_time'])
-        hcnt.keywords = { **hcnt.keywords, **time_left_dict}
-        re =  CATCH_ANSWER
-
     hcnt.navigation['last_q'] = q.id
     return hcnt, InlineKeyboardMarkup(keybord), is_correct, re
-
 
 def go_up(update: Update, context: CallbackContext) -> str:
     query = update.callback_query
     query.answer('Готово')
     remove_job_if_exists(f'{query.message.chat_id}-trackquestion', context)
     hcnt = context.user_data['hcnt']
-    q_id = hcnt.navigation.get('last_q', None)
-    cnt = {'hcnt': hcnt, 'bot': context.bot}
-    name = f'{hcnt.user_id}-{q_id}-delaymessageedit'
-    context.job_queue.run_once(_delay_message_edit, DELAY, context=cnt, name=name)
-    context.user_data['hcnt'] = hcnt
+    q = Question.objects.get(id=hcnt.navigation['q_id'])
+    if q.answer_type == q.AnswerType.KB_BTN:
+        context.bot.delete_message(
+            chat_id=hcnt.user_id, 
+            message_id=hcnt.navigation['KB_BTN_message_id'],
+        )
+
 
     if query.data == 'change-lvl':
         send_lvl_choose(context)
@@ -302,10 +316,13 @@ def go_up(update: Update, context: CallbackContext) -> str:
 def finish_test(update: Update, context: CallbackContext) -> str:
     hcnt = context.user_data['hcnt']
     remove_job_if_exists(f'{hcnt.user_id}-trackquestion', context)
-    q_id = hcnt.navigation['last_q']
-    cnt = {'hcnt': hcnt, 'bot': context.bot}
-    name = f'{hcnt.user_id}-{q_id}-delaymessageedit'
-    context.job_queue.run_once(_delay_message_edit, DELAY, context=cnt, name=name)
+    hcnt = context.user_data['hcnt']
+    q = Question.objects.get(id=hcnt.navigation['q_id'])
+    if q.answer_type == q.AnswerType.KB_BTN:
+        context.bot.delete_message(
+            chat_id=hcnt.user_id, 
+            message_id=hcnt.navigation['KB_BTN_message_id'],
+        ) 
 
     hcnt.role = 'finish_test'
     hcnt.action = 'edit_msg'

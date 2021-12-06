@@ -32,7 +32,7 @@ class HelpContext(object):
         keywords: dict = None, 
         navigation: dict = None, 
         profile_status: str = None,
-        jobs_names: list = []
+        prev_answer_type: str = None
     ) -> None:
         super().__init__()
         
@@ -44,7 +44,7 @@ class HelpContext(object):
         self.keywords = keywords
         self.profile_status = profile_status
         self.role: str = role
-        self.jobs_names = jobs_names
+        self.prev_answer_type = prev_answer_type
 
         
 

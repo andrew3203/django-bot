@@ -15,14 +15,22 @@ def send_stacktrace_to_tg_chat(update: Update, context) -> None:
     tb_list = traceback.format_exception(None, context.error, context.error.__traceback__)
     tb_string = ''.join(tb_list)
 
-    hcnt = context.user_data['hcnt']
-    hcnt.role = 'BOT_ERROR'
-    hcnt.action = 'delete_msg'
-    _do_message(hcnt)
+    if context.user_data:
+        hcnt = context.user_data['hcnt']
+        u = User.objects.get(user_id=hcnt.user_id)
+        hcnt.role = 'BOT_ERROR'
+        hcnt.action = 'delete_msg'
+        _do_message(hcnt)
+    else:
+        u = User.get_user(update, context)
+        hcnt = HelpContext(
+            role='BOT_ERROR',
+            user_id=u.user_id
+        )
+
     hcnt.action = 'send_msg'
     context.user_data['hcnt'] = _do_message(hcnt)
 
-    u = User.objects.get(user_id=hcnt.user_id)
     message = (
         f'<b>Возникло исключение при обработке обновления</b>\n'
         f'<pre>{html.escape(tb_string)}</pre>'
