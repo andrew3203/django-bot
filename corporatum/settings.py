@@ -28,7 +28,11 @@ if os.environ.get('DJANGO_DEBUG', default=False) in ['True', 'true', '1', True]:
 else:
     DEBUG = False
 
-ALLOWED_HOSTS = ["*",]  # since Telegram uses a lot of IPs for webhooks
+ALLOWED_HOSTS = [
+    "*",
+    'corporatum.club',
+    '31.148.99.116',
+]  # since Telegram uses a lot of IPs for webhooks
 
 
 INSTALLED_APPS = [
@@ -65,6 +69,8 @@ MIDDLEWARE = [
 INTERNAL_IPS = [
     # ...
     '127.0.0.1',
+    '31.148.99.116',
+    'corporatum.club'
     # ...
 ]
 
@@ -136,6 +142,9 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(PROJECT_ROOT, 'static')
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(PROJECT_ROOT, 'media')
 
 
 # -----> CELERY
