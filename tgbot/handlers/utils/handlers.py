@@ -113,6 +113,7 @@ def _send_poll(
                 "message_id": m.message_id,
                 'poll_id': m.poll.id,
                 "chat_id": user_id,
+                "correct_option_id": correct_option_id
             },
             user_id: {"message_id": m.message_id}
         }

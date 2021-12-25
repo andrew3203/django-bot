@@ -181,34 +181,31 @@ class Question(models.Model):
         ans_to_print = ''
 
         if self.answer_type in [self.AnswerType.FLY_BTN, self.AnswerType.KB_BTN]:
-            ans = _normalize_text(ans)
-            ans_to_print = ans
-            is_correct = True if ans in answers else False
+            ans_to_print = _normalize_text(ans)
+            is_correct = True if ans_to_print in answers else False
 
         elif self.answer_type == self.AnswerType.POLL:
-            ans = list(map(_normalize_text, ans))
-            ans_to_print = ', '.join(ans)
+            ans_to_print = ', '.join(list(map(_normalize_text, ans)))
             is_correct = True if len(set(ans) and set(answers)) > 0 else False
 
         elif self.answer_type == self.AnswerType.WORD:
-            ans = _normalize_text(ans.replace(' ', ''))
-            ans_to_print = ans
-            is_correct = True if ans in answers else False
+            ans_to_print = _normalize_text(ans.replace(' ', ''))
+            is_correct = True if ans_to_print in answers else False
 
         elif self.answer_type == self.AnswerType.SENTENSE:
             is_correct = True if len(ans) > 0 else False
             ans_to_print = 'ответ принят'
 
         elif self.answer_type == self.AnswerType.QUIZ:
-            is_correct, ans = ans
-            ans_to_print = ans
+            is_correct, ans_text = ans
+            ans_to_print = ans_text
 
         time_to_solve = (datetime.min + (now() - start_time)).time()
         ans = Answer.objects.create(
             question=self,
             user=user,
             time_to_solve=time_to_solve,
-            answer_text=ans,
+            answer_text=ans_to_print,
             is_correct=is_correct,
         )
         ans.save()

@@ -24,6 +24,12 @@ class CreateUpdateTracker(CreateTracker):
 
 class HelpContext(object):
 
+    def __name__(self):
+        return 'HelpContext'
+
+    def copy(self):
+        return HelpContext(**self.__dict__.copy())
+
     def __init__(self, role: str, 
         user_id: int,
         message_id: int = None,
@@ -37,14 +43,23 @@ class HelpContext(object):
         super().__init__()
         
         self.user_id = user_id
+        self.__dict__.update({'user_id': user_id})
         self.action = action
+        self.__dict__.update({'action': action})
         self.to_top = to_top
+        self.__dict__.update({'to_top': to_top})
         self.message_id = message_id
+        self.__dict__.update({'message_id': message_id})
         self.navigation = navigation
+        self.__dict__.update({'navigation': navigation})
         self.keywords = keywords
+        self.__dict__.update({'keywords': keywords})
         self.profile_status = profile_status
-        self.role: str = role
+        self.__dict__.update({'profile_status': profile_status})
+        self.role = role
+        self.__dict__.update({'role': role})
         self.prev_answer_type = prev_answer_type
+        self.__dict__.update({'prev_answer_type': prev_answer_type})
 
         
 
