@@ -112,19 +112,17 @@ def setup_dispatcher(dp):
             CommandHandler('stop', onboarding_handlers.stop), # -> STOPPING
         ],
         map_to_parent={
-            # Return to top level menu
             END: SELECTING_LEVEL,
-            # End conversation altogether
             STOPPING: STOPPING,
         }
     )
     control_course_sett_handlers = [
-        CallbackQueryHandler(courses_handlers.show_themes, pattern='^themes$'), # показываем все темы
-        CallbackQueryHandler(courses_handlers.show_test, pattern='^theme-(\d+)$'), # получаем тему, открываем тесты
-        CallbackQueryHandler(courses_handlers.choose_lvl, pattern='lvl-(\d+)'), # кнопки сложность, начать кнопки назад, начать
+        CallbackQueryHandler(courses_handlers.show_themes, pattern='^themes$'), 
+        CallbackQueryHandler(courses_handlers.show_test, pattern='^theme-(\d+)$'),
+        CallbackQueryHandler(courses_handlers.choose_lvl, pattern='^lvl-(\d+)$'),
     ]
     courses_handler = ConversationHandler(
-        entry_points = control_course_sett_handlers,
+        entry_points=control_course_sett_handlers,
         states={
             CHOOSER: control_course_sett_handlers,
             CHOOSE_TEST: [MessageHandler(Filters.text & ~Filters.command, courses_handlers.choose_test)],  # получаем тест, открываем уровень
@@ -135,30 +133,26 @@ def setup_dispatcher(dp):
             CommandHandler('stop', onboarding_handlers.stop), # -> STOPPING
         ],
         map_to_parent={
-            # Return to top level menu
             END: SELECTING_LEVEL,
             SELECTING_LEVEL: SELECTING_LEVEL, 
             STOPPING: STOPPING,
         }
     )
-    
-
-    commands_handler = [
-        CommandHandler('start', onboarding_handlers.start), 
-        CommandHandler('help', onboarding_handlers.help), 
-        CommandHandler('addfriend', onboarding_handlers.add_friend), 
-    ]
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler('start', onboarding_handlers.start)],
         states={
             SELECTING_LEVEL: [
+                courses_handler,
                 run_test_handler,
                 profile_handler, 
                 get_gold_handler,
-                courses_handler,
                 CallbackQueryHandler(onboarding_handlers.help, pattern=f'help'),
             ],
-            STOPPING: commands_handler,
+            STOPPING: [
+                CommandHandler('start', onboarding_handlers.start), 
+                CommandHandler('help', onboarding_handlers.help), 
+                CommandHandler('addfriend', onboarding_handlers.add_friend), 
+            ],
         },
         fallbacks=[
             CallbackQueryHandler(onboarding_handlers.stop, pattern=f'^(done)|(exit)$'),
@@ -179,7 +173,7 @@ def setup_dispatcher(dp):
     dp.add_handler(PollAnswerHandler(runtest_handlers.receive_poll_answer))
 
     # files
-    dp.add_handler(MessageHandler(Filters.animation, files.show_file_id))
+    # dp.add_handler(MessageHandler(Filters.animation, files.show_file_id))
     
     # handling errors
     dp.add_error_handler(error.send_stacktrace_to_tg_chat)
@@ -198,9 +192,6 @@ def run_pooling():
     bot_link = f"https://t.me/" + bot_info["username"]
 
     print(f"Pooling of '{bot_link}' started")
-    # it is really useful to send '👋' emoji to developer
-    # when you run local test
-    # bot.send_message(text='👋', chat_id=<YOUR TELEGRAM ID>)
 
     updater.start_polling(allowed_updates=Update.ALL_TYPES)
     updater.idle()
@@ -247,9 +238,8 @@ def set_up_commands(bot_instance: Bot) -> None:
         )
 
 
-# WARNING: it's better to comment the line below in DEBUG mode.
-# Likely, you'll get a flood limit control error, when restarting bot too often
-#set_up_commands(bot)
+if not DEBUG:
+    set_up_commands(bot)
 
 n_workers = 0 if DEBUG else 4
 dispatcher = setup_dispatcher(Dispatcher(bot, update_queue=None, workers=n_workers, use_context=True))

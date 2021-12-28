@@ -242,12 +242,12 @@ def _check_answer(context: CallbackContext, answer_text: str, q: Question) -> st
     else:
         hcnt.role = 'answer_incorrect'
         time_left_dict = q.get_time_left(hcnt.navigation['start_time'])
-        hcnt.keywords = { **hcnt.keywords, **time_left_dict}
+        hcnt.keywords = {**hcnt.keywords, **time_left_dict}
         re =  conf.CATCH_ANSWER
 
+    keybord = [[InlineKeyboardButton('Выйти', callback_data='back')]]
     if new_q_id:
         btn_text = 'Следующий вопрос'; data = f'q_id-{new_q_id}'
-        keybord = [[InlineKeyboardButton('Выйти', callback_data='back')]]
     else:
         btn_text = 'Закончить тест'; data = f'finish_test'
         keybord = []
