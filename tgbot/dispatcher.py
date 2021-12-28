@@ -90,7 +90,9 @@ def setup_dispatcher(dp):
         }
     )
     run_test_handler = ConversationHandler(
-        entry_points=[ CallbackQueryHandler(runtest_handlers.run_test, pattern='^(run_first_test)|(run_test)$')],
+        entry_points=[
+            CallbackQueryHandler(runtest_handlers.run_test, pattern='^(run_first_test)|(run_test)$')
+        ],
         states={
             INER: [CallbackQueryHandler(runtest_handlers.run_test, pattern='^run_test$')], 
             QUESTIONS: [CallbackQueryHandler(runtest_handlers.show_question, pattern='^q_id-(\d+)$')],
@@ -98,32 +100,34 @@ def setup_dispatcher(dp):
                 CallbackQueryHandler(runtest_handlers.receive_callback_answer, pattern='^ans-(\d+)$'),
                 CallbackQueryHandler(runtest_handlers.show_question, pattern='^q_id-(\d+)$'),
                 MessageHandler(Filters.text & ~Filters.command, runtest_handlers.receive_text_answer),
-                CallbackQueryHandler(runtest_handlers.go_up, pattern='^(change-lvl)|(themes)$')
             ],
             #BACK:[courses_handler],
         },
         fallbacks=[
-            CallbackQueryHandler(runtest_handlers.go_up, pattern='^back$'), # -> BACK|END
-            CallbackQueryHandler(runtest_handlers.finish_test, pattern='^finish_test$'), # -> done -> end
+            CallbackQueryHandler(runtest_handlers.change_test_lvl, pattern='^change-lvl$'), # -> END
+            CallbackQueryHandler(runtest_handlers.change_test_theme, pattern='^themes$'), # -> END
+            CallbackQueryHandler(runtest_handlers.test_no_gold, pattern='^get_gold$'), # -> END
+            CallbackQueryHandler(runtest_handlers.need_profile, pattern='^profile$'), # -> END
+            CallbackQueryHandler(runtest_handlers.test_go_back, pattern='^back$'), # -> END
+            CallbackQueryHandler(runtest_handlers.finish_test, pattern='^finish_test$'), # -> done -> END
             CommandHandler('stop', onboarding_handlers.stop), # -> STOPPING
         ],
         map_to_parent={
             # Return to top level menu
             END: SELECTING_LEVEL,
-            # Return to choose level menu
-            CHOOSER: CHOOSER,
             # End conversation altogether
             STOPPING: STOPPING,
         }
     )
+    control_course_sett_handlers = [
+        CallbackQueryHandler(courses_handlers.show_themes, pattern='^themes$'), # показываем все темы
+        CallbackQueryHandler(courses_handlers.show_test, pattern='^theme-(\d+)$'), # получаем тему, открываем тесты
+        CallbackQueryHandler(courses_handlers.choose_lvl, pattern='^lvl-(\d+)$'), # кнопки сложность, начать кнопки назад, начать
+    ]
     courses_handler = ConversationHandler(
-        entry_points=[CallbackQueryHandler(courses_handlers.show_themes, pattern='^themes$')],
+        entry_points = control_course_sett_handlers,
         states={
-            CHOOSER: [
-                #CallbackQueryHandler(courses_handlers.show_themes, pattern='^themes$'), # показываем все темы
-                CallbackQueryHandler(courses_handlers.show_test, pattern='^theme-(\d+)$'), # получаем тему, открываем тесты
-                CallbackQueryHandler(courses_handlers.choose_lvl, pattern='^lvl-(\d+)$'), # кнопки сложность, начать кнопки назад, начать
-            ], 
+            CHOOSER: control_course_sett_handlers,
             CHOOSE_TEST: [MessageHandler(Filters.text & ~Filters.command, courses_handlers.choose_test)],  # получаем тест, открываем уровень
             GO: [run_test_handler],
         },
@@ -134,6 +138,7 @@ def setup_dispatcher(dp):
         map_to_parent={
             # Return to top level menu
             END: SELECTING_LEVEL,
+            SELECTING_LEVEL: SELECTING_LEVEL,
             # End conversation altogether
             STOPPING: STOPPING,
         }

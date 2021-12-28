@@ -74,28 +74,22 @@ def choose_test(update: Update, context: CallbackContext) -> str:
         context.user_data['hcnt'] = hcnt
         return send_lvl_choose(context)
 
-
-def send_lvl_choose(context: CallbackContext) -> str:
-    hcnt = context.user_data['hcnt']
-    test_id = hcnt.navigation['test']
-    theme_id = hcnt.navigation['theme']
+def _get_lvl_markup(test_id):
     keyboard = []
     for l in Question.get_lvls_for_test(test_id):
         keyboard.append([
             InlineKeyboardButton(l[1], callback_data=f'lvl-{l[0]}')
         ])
+    return InlineKeyboardMarkup(keyboard)
 
-    keyboard.append([
-        InlineKeyboardButton('Темы', callback_data=f'theme-{theme_id}'),
-        InlineKeyboardButton('Курсы', callback_data='themes'),
-    ])
-       
+def send_lvl_choose(context: CallbackContext) -> str:
+    hcnt = context.user_data['hcnt']
+    test_id = hcnt.navigation['test']
     hcnt.role = 'choose_lvl'
     hcnt.action = 'send_msg'
-    hcnt = _do_message(hcnt, reply_markup=InlineKeyboardMarkup(keyboard))
+    hcnt = _do_message(hcnt, reply_markup=_get_lvl_markup(test_id))
     context.user_data['hcnt'] = hcnt
     return CHOOSER
-
 
 def choose_lvl(update: Update, context: CallbackContext) -> str:
     query = update.callback_query

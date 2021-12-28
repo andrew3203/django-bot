@@ -8,7 +8,7 @@ from telegram.ext import CallbackContext
 
 from tgbot.models import Test, User, Question
 from tgbot.handlers.utils.handlers import _do_message, _send_poll, remove_job_if_exists
-from tgbot.handlers.courses.handlers import send_lvl_choose, show_themes
+from tgbot.handlers.courses.handlers import _get_lvl_markup, show_themes
 from tgbot.handlers.onboarding.handlers import done
 from tgbot.handlers.utils import conf
 from utils.models import HelpContext
@@ -36,6 +36,7 @@ def run_test(update: Update, context: CallbackContext) -> str:
 
     user = User.get_user(update, context)
     if user.is_active or query.data == 'run_first_test':
+        print(f'START TEST   user.gold = {user.gold}, lvl: {lvl}')
         if user.gold - int(lvl) >= 0:
             q_id = Test.get_question_id(test_id)
             role = 'start_test'
@@ -262,27 +263,57 @@ def _check_answer(context: CallbackContext, answer_text: str, q: Question) -> st
     keybord.append([InlineKeyboardButton(btn_text, callback_data=data)])
     return hcnt, InlineKeyboardMarkup(keybord), is_correct, re
 
-def go_up(update: Update, context: CallbackContext) -> str:
+def _go_up(update: Update, context: CallbackContext) -> str:
     query = update.callback_query
     query.answer('Готово')
     remove_job_if_exists(f'{query.message.chat_id}-trackquestion', context)
     hcnt = context.user_data['hcnt']
     q = Question.objects.filter(id=hcnt.navigation.get('q_id', None)).first()
     hcnt = _del_kb_message_if_exists(context, hcnt, q)
-    print(query.data, f'catched in qo_up\n-----------')
-    if query.data == 'change-lvl':
-        send_lvl_choose(context)
-        return conf.CHOOSER
+    return hcnt
 
-    elif query.data == 'themes':
-        show_themes(update, context)
-        return conf.CHOOSER
+def change_test_lvl(update: Update, context: CallbackContext) -> str:
+    hcnt = _go_up(update, context)
+    test_id = hcnt.navigation['test']  
+    hcnt.action = 'edit_msg'; hcnt.role = 'choose_lvl'  
+    hcnt = _do_message(hcnt, reply_markup=_get_lvl_markup(test_id))
+    context.user_data['hcnt'] = hcnt
+    return conf.END
 
-    elif query.data == 'back':
-        hcnt.to_top = True
-        hcnt.action = 'edit_msg'
-        context.user_data['hcnt'] = hcnt
-        return done(update, context)
+def change_test_theme(update: Update, context: CallbackContext) -> str:
+    context.user_data['hcnt'] = _go_up(update, context)
+    show_themes(update, context)
+    print('change_test_theme')
+    return conf.END
+
+def test_no_gold(update: Update, context: CallbackContext) -> str:
+    hcnt = _go_up(update, context)
+    hcnt.action = 'edit_msg'
+    markup = InlineKeyboardMarkup([
+        [InlineKeyboardButton(u'Получить золото', callback_data='get_gold')],
+    ])
+    context.user_data['hcnt'] = _do_message(hcnt, reply_markup=markup)
+    print('return test_no_gold')  
+    return conf.END  
+
+def need_profile(update: Update, context: CallbackContext) -> str:
+    hcnt = _go_up(update, context)
+    hcnt.action = 'edit_msg'
+    markup = InlineKeyboardMarkup([
+        [InlineKeyboardButton(hcnt.profile_status, callback_data='profile')],
+    ])
+    context.user_data['hcnt'] = _do_message(hcnt, reply_markup=markup)
+    print('return need_profile')
+    return conf.END
+
+def test_go_back(update: Update, context: CallbackContext) -> str:
+    hcnt = _go_up(update, context)
+    hcnt.to_top = True
+    hcnt.action = 'edit_msg'
+    context.user_data['hcnt'] = hcnt
+    print('return test_go_back')
+    done(update, context)
+    return conf.END
 
 def finish_test(update: Update, context: CallbackContext) -> str:
     hcnt = context.user_data['hcnt']
