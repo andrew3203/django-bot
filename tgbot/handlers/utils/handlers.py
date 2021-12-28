@@ -176,6 +176,8 @@ def _do_message(
 
 def send_selecting_lvl(update: Update, context: CallbackContext):
     hcnt = context.user_data['hcnt']
+    u = User.get_user(update, context)
+    hcnt.profile_status = 'Профиль' if u.is_active else 'Регистрация'
     markup = InlineKeyboardMarkup([
         [
             InlineKeyboardButton(u'Пробный тест', callback_data='run_first_test'),

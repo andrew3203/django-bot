@@ -15,7 +15,7 @@ from telegram.ext import (
     ConversationHandler,
     ChatMemberHandler,
     PreCheckoutQueryHandler,
-    PollAnswerHandler, PollHandler, ShippingQueryHandler
+    PollAnswerHandler
 )
 
 from corporatum.celery import app  # event processing in async mode
@@ -101,7 +101,6 @@ def setup_dispatcher(dp):
                 CallbackQueryHandler(runtest_handlers.show_question, pattern='^q_id-(\d+)$'),
                 MessageHandler(Filters.text & ~Filters.command, runtest_handlers.receive_text_answer),
             ],
-            #BACK:[courses_handler],
         },
         fallbacks=[
             CallbackQueryHandler(runtest_handlers.change_test_lvl, pattern='^change-lvl$'), # -> END
@@ -122,7 +121,7 @@ def setup_dispatcher(dp):
     control_course_sett_handlers = [
         CallbackQueryHandler(courses_handlers.show_themes, pattern='^themes$'), # показываем все темы
         CallbackQueryHandler(courses_handlers.show_test, pattern='^theme-(\d+)$'), # получаем тему, открываем тесты
-        CallbackQueryHandler(courses_handlers.choose_lvl, pattern='^lvl-(\d+)$'), # кнопки сложность, начать кнопки назад, начать
+        CallbackQueryHandler(courses_handlers.choose_lvl, pattern='lvl-(\d+)'), # кнопки сложность, начать кнопки назад, начать
     ]
     courses_handler = ConversationHandler(
         entry_points = control_course_sett_handlers,
@@ -138,8 +137,7 @@ def setup_dispatcher(dp):
         map_to_parent={
             # Return to top level menu
             END: SELECTING_LEVEL,
-            SELECTING_LEVEL: SELECTING_LEVEL,
-            # End conversation altogether
+            SELECTING_LEVEL: SELECTING_LEVEL, 
             STOPPING: STOPPING,
         }
     )

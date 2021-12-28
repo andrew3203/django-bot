@@ -28,7 +28,6 @@ def show_themes(update: Update, context: CallbackContext) -> str:
     context.user_data['hcnt'] = hcnt
     return CHOOSER
 
-
 def show_test(update: Update, context: CallbackContext) -> str:
     query = update.callback_query
     query.answer('Выгрузка тестов')
@@ -50,7 +49,6 @@ def show_test(update: Update, context: CallbackContext) -> str:
 
     context.user_data['hcnt'] = _do_message(hcnt, reply_markup=markup)
     return CHOOSE_TEST
-
 
 def choose_test(update: Update, context: CallbackContext) -> str:
     test_name = update.message.text

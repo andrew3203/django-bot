@@ -71,7 +71,6 @@ def help(update: Update, context: CallbackContext) -> str:
 
 def done(update: Update, context: CallbackContext) ->str:
     hcnt = context.user_data['hcnt']
-    print(f'- - - to_top: {hcnt.to_top} - - - -')
     if hcnt.to_top:
         hcnt.role = 'choose_todo'
         hcnt.to_top = False
@@ -79,7 +78,6 @@ def done(update: Update, context: CallbackContext) ->str:
         send_selecting_lvl(update, context)
         
     context.user_data['hcnt'] = hcnt
-    print('- - - - - go to END - - - - - -')
     return END
 
 def stop(update: Update, context: CallbackContext) -> str:
@@ -88,7 +86,6 @@ def stop(update: Update, context: CallbackContext) -> str:
     hcnt.action = 'edit_msg'
     remove_job_if_exists(f'{hcnt.user_id}-trackquestion', context)
     context.user_data['hcnt'] = _do_message(hcnt)
-    print('- - - - - go to STOPPING - - - - - -')
     return STOPPING
 
 def add_friend(update: Update, context: CallbackContext) -> str:

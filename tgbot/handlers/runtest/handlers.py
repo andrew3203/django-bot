@@ -36,7 +36,6 @@ def run_test(update: Update, context: CallbackContext) -> str:
 
     user = User.get_user(update, context)
     if user.is_active or query.data == 'run_first_test':
-        print(f'START TEST   user.gold = {user.gold}, lvl: {lvl}')
         if user.gold - int(lvl) >= 0:
             q_id = Test.get_question_id(test_id)
             role = 'start_test'
@@ -63,7 +62,6 @@ def run_test(update: Update, context: CallbackContext) -> str:
     context.user_data['hcnt'] = _do_message(hcnt, reply_markup=markup)    
     return conf.QUESTIONS
 
-
 def show_question(update: Update, context: CallbackContext) -> str:
     query = update.callback_query
     q_id = query.data.split("-")[-1]
@@ -84,8 +82,6 @@ def show_question(update: Update, context: CallbackContext) -> str:
     hcnt.navigation['start_time'] = now()
 
     new_q_id = Test.get_question_id(test_id=hcnt.navigation['test'], last_q_id=q_id)
-    print('last q: ', q.id, q_id)
-    print('new q: ', new_q_id)
     call = ('Пропустить вопрос', f'q_id-{new_q_id}') if new_q_id else ('Закончить тест', 'back')
     keyboard = [[InlineKeyboardButton(call[0], callback_data=call[1])]]
 
@@ -96,7 +92,6 @@ def show_question(update: Update, context: CallbackContext) -> str:
 
     elif q.answer_type == q.AnswerType.KB_BTN:
         hcnt = _do_message(hcnt, reply_markup=InlineKeyboardMarkup(keyboard))
-        print(hcnt.message_id)
 
         keyboard1 = [[KeyboardButton(v)] for v in q.get_ans_variants()]
         markup = ReplyKeyboardMarkup(keyboard1, one_time_keyboard=True, resize_keyboard=True)
@@ -148,11 +143,9 @@ def no_answer(context: CallbackContext) -> str:
 def receive_callback_answer(update: Update, context: CallbackContext) -> str:
     hcnt =  context.user_data['hcnt']
     q = Question.objects.get(id=hcnt.navigation['q_id'])
-    print('receive callback answer: ', q.id, q.answer_type)
     ans_num = int(update.callback_query.data.split('-')[-1])
     answer_text = q.get_ans_variants()[ans_num]
     hcnt, markup, _, re = _check_answer(context, answer_text, q)
-    print('answer checked:', update.callback_query.data, ans_num, _, re)
     hcnt.action = 'edit_msg' 
     context.user_data['hcnt'] = _do_message(hcnt, reply_markup=markup)
     return re
@@ -160,12 +153,10 @@ def receive_callback_answer(update: Update, context: CallbackContext) -> str:
 def receive_text_answer(update: Update, context: CallbackContext) -> str:
     hcnt =  context.user_data['hcnt']
     q = Question.objects.filter(id=hcnt.navigation.get('q_id', None)).first()
-    print('receive text answer: ', q.id, q.answer_type)
     answer_text = update.message.text
 
     if q and q.answer_type in [q.AnswerType.WORD, q.AnswerType.KB_BTN, q.AnswerType.SENTENSE]:
         hcnt, markup, is_correct, re = _check_answer(context, answer_text, q)
-        print('answer checked:', answer_text, is_correct, re)
 
         if is_correct:
             _set_delay_edit(context, hcnt.copy(), q.id)
@@ -274,7 +265,7 @@ def _go_up(update: Update, context: CallbackContext) -> str:
 
 def change_test_lvl(update: Update, context: CallbackContext) -> str:
     hcnt = _go_up(update, context)
-    test_id = hcnt.navigation['test']  
+    test_id = hcnt.navigation['test']
     hcnt.action = 'edit_msg'; hcnt.role = 'choose_lvl'  
     hcnt = _do_message(hcnt, reply_markup=_get_lvl_markup(test_id))
     context.user_data['hcnt'] = hcnt
@@ -283,7 +274,6 @@ def change_test_lvl(update: Update, context: CallbackContext) -> str:
 def change_test_theme(update: Update, context: CallbackContext) -> str:
     context.user_data['hcnt'] = _go_up(update, context)
     show_themes(update, context)
-    print('change_test_theme')
     return conf.END
 
 def test_no_gold(update: Update, context: CallbackContext) -> str:
@@ -293,7 +283,6 @@ def test_no_gold(update: Update, context: CallbackContext) -> str:
         [InlineKeyboardButton(u'Получить золото', callback_data='get_gold')],
     ])
     context.user_data['hcnt'] = _do_message(hcnt, reply_markup=markup)
-    print('return test_no_gold')  
     return conf.END  
 
 def need_profile(update: Update, context: CallbackContext) -> str:
@@ -303,7 +292,6 @@ def need_profile(update: Update, context: CallbackContext) -> str:
         [InlineKeyboardButton(hcnt.profile_status, callback_data='profile')],
     ])
     context.user_data['hcnt'] = _do_message(hcnt, reply_markup=markup)
-    print('return need_profile')
     return conf.END
 
 def test_go_back(update: Update, context: CallbackContext) -> str:
@@ -311,7 +299,6 @@ def test_go_back(update: Update, context: CallbackContext) -> str:
     hcnt.to_top = True
     hcnt.action = 'edit_msg'
     context.user_data['hcnt'] = hcnt
-    print('return test_go_back')
     done(update, context)
     return conf.END
 
@@ -328,4 +315,5 @@ def finish_test(update: Update, context: CallbackContext) -> str:
     hcnt.to_top = True
     hcnt.action = 'send_msg'
     context.user_data['hcnt'] = hcnt
-    return done(update, context)
+    done(update, context)
+    return conf.END

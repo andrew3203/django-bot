@@ -40,7 +40,7 @@ class UserAdmin(admin.ModelAdmin):
         'language_code'
     ]
 
-    search_fields = ('username', 'first_name', 'last_name')
+    search_fields = ('username', 'first_name', 'last_name', 'user_id')
     fieldsets = (
         ('О пользователе', {
             'fields': (
@@ -157,7 +157,7 @@ class TestAdmin(admin.ModelAdmin):
 
 @admin.register(Theme)
 class ThemeAdmin(admin.ModelAdmin):
-    search_fields = ['short_name']
+    search_fields = ['short_name', 'id']
     list_display = ['short_name', 'is_visible']
     list_display_links = ('short_name',)
     list_filter = (
