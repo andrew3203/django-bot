@@ -110,7 +110,7 @@ class QuestionAdmin(admin.ModelAdmin):
     fieldsets = (
         (None, {
             'fields': (
-                ("get_test", "get_theme"),
+                ("id", "get_test", "get_theme"),
             ),
         }),
         ('Основное', {
@@ -128,7 +128,7 @@ class QuestionAdmin(admin.ModelAdmin):
             ),
         }),
     )
-    readonly_fields = ('get_test', 'get_theme')
+    readonly_fields = ('get_test', 'get_theme', "id")
 
 
 @admin.register(Test)
@@ -142,7 +142,7 @@ class TestAdmin(admin.ModelAdmin):
     fieldsets = (
         ('Общая информация', {
             'fields': (
-                ("short_name", "is_visible", 'get_theme'),
+                ("id", "short_name", "is_visible", 'get_theme'),
             ),
         }),
         ('Вопросы', {
@@ -152,7 +152,7 @@ class TestAdmin(admin.ModelAdmin):
         }),
     )
     filter_horizontal = ('questions',)
-    readonly_fields = ('get_theme',)
+    readonly_fields = ('get_theme', "id")
 
 
 @admin.register(Theme)
@@ -166,7 +166,7 @@ class ThemeAdmin(admin.ModelAdmin):
     fieldsets = (
         ('Общая информация', {
             'fields': (
-                ("short_name", "is_visible"),
+                ("id", "short_name", "is_visible"),
             ),
         }),
         ('Тесты', {
@@ -176,6 +176,7 @@ class ThemeAdmin(admin.ModelAdmin):
         }),
     )
     filter_horizontal = ('tests',)
+    readonly_fields = ("id",)
 
 
 @admin.register(Answer)

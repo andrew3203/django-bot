@@ -5,7 +5,7 @@ from telegram import (
 from telegram.ext import CallbackContext
 from telegram.utils import helpers
 
-from tgbot.handlers.utils.handlers import _do_message, send_selecting_lvl
+from tgbot.handlers.utils.handlers import _do_message, send_selecting_lvl, remove_job_if_exists
 from tgbot.handlers.utils.track_user import is_user_subscribed
 
 from tgbot.handlers.utils.conf import *
@@ -84,6 +84,7 @@ def stop(update: Update, context: CallbackContext) -> str:
     hcnt = context.user_data['hcnt']
     hcnt.role = 'stop'
     hcnt.action = 'edit_msg'
+    remove_job_if_exists(f'{hcnt.user_id}-trackquestion', context)
     context.user_data['hcnt'] = _do_message(hcnt)
     return STOPPING
 

@@ -277,9 +277,11 @@ class Test(models.Model):
         return d
 
     @staticmethod
-    def get_question_id(num, test_id) -> Optional[bool]:
-        questions = Question.objects.filter(test__id=test_id)
-        return  questions[num].id if len(questions) > num else None
+    def get_question_id(test_id, last_q_id=None) -> Optional[bool]:
+        questions = list(Question.objects.filter(test__id=test_id).values_list('id', flat=True))
+        num = (1 + questions.index(int(last_q_id))) if last_q_id is not None else 0
+        questions += [None]
+        return questions[num] if len(questions) > num else None
 
     @staticmethod
     def get_new_question_id(user_id, test_id): # показать следующий не сделанный вопрос

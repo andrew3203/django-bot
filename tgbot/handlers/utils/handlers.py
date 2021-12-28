@@ -187,8 +187,7 @@ def send_selecting_lvl(update: Update, context: CallbackContext):
     ])
     if update.callback_query is not None:
         update.callback_query.answer('Готово')
-    hcnt = _do_message(hcnt, reply_markup=markup)
-    context.user_data['hcnt'] = hcnt
+    context.user_data['hcnt'] = _do_message(hcnt, reply_markup=markup)
 
 def remove_job_if_exists(name: str, context: CallbackContext) -> bool:
     """Remove job with given name. Returns whether job was removed."""

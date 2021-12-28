@@ -44,7 +44,7 @@ def setup_dispatcher(dp):
     Adding handlers for events from Telegram
     """
     get_gold_handler = ConversationHandler(
-        entry_points=[CallbackQueryHandler(getgol_handlers.run_pay, pattern='get_gold')],
+        entry_points=[CallbackQueryHandler(getgol_handlers.run_pay, pattern='^get_gold$')],
         states={
             PAYMENT_PREPARE: [
                 CallbackQueryHandler(getgol_handlers.choose_payment_type, pattern='pay'),
@@ -149,8 +149,8 @@ def setup_dispatcher(dp):
         entry_points=[CommandHandler('start', onboarding_handlers.start)],
         states={
             SELECTING_LEVEL: [
-                profile_handler, 
                 run_test_handler,
+                profile_handler, 
                 get_gold_handler,
                 courses_handler,
                 CallbackQueryHandler(onboarding_handlers.help, pattern=f'help'),
