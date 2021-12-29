@@ -4,7 +4,7 @@ python-dotenv
 ipython
 
 # Django
-django
+django=3.9
 django-timezone-field 
 django-cors-headers
 django-debug-toolbar
@@ -23,7 +23,7 @@ dj-database-url
 # Distributed tasks
 celery
 redis
-django-celery-beat
+django-celery-beat=59.1.1
 
 # Telegram
 python-telegram-bot
