@@ -310,6 +310,8 @@ def finish_test(update: Update, context: CallbackContext) -> str:
     hcnt = _del_kb_message_if_exists(context, hcnt, q)
     hcnt.role = 'finish_test'
     hcnt.action = 'edit_msg'
+    res = Test.get_results(hcnt.navigation['test'], hcnt.user_id)
+    hcnt.keywords = {**hcnt.keywords, **res}
     hcnt = _do_message(hcnt)
    
     hcnt.to_top = True

@@ -293,6 +293,20 @@ class Test(models.Model):
         ans = sorted(set(k1) - set(k2), key=lambda o: o[1])
         return Question.objects.get(id=ans[0][0]).id if len(ans) > 0 else None
 
+    @staticmethod
+    def get_results(test_id, user_id):
+        questions = list(Question.objects.filter(test__id=test_id).values_list('id', flat=True))
+        am = 0
+        for q_id in questions:
+            ans  =Answer.objects.filter(user__user_id=user_id, question__id=q_id).first()
+            am = (am + 1) if ans.is_correct else am
+        return {
+            am: ['right_amount'],
+            len(questions): ['questions_amount'],
+            f'{am / len(questions):.3f}': ['right_percent'],
+            f'{1 - am / len(questions):.3f}': ['wrong_percent']
+        }
+
     @admin.display(description='Тема')
     def get_theme(self):
         obj = Theme.objects.filter(tests=self).first()
