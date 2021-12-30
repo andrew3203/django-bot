@@ -97,9 +97,9 @@ def setup_dispatcher(dp):
             INER: [CallbackQueryHandler(runtest_handlers.run_test, pattern='^run_test$', pass_job_queue=True)], 
             QUESTIONS: [CallbackQueryHandler(runtest_handlers.show_question, pattern='^q_id-(\d+)$', pass_job_queue=True)],
             CATCH_ANSWER: [
-                CallbackQueryHandler(runtest_handlers.receive_callback_answer, pattern='^ans-(\d+)$'),
-                CallbackQueryHandler(runtest_handlers.show_question, pattern='^q_id-(\d+)$'),
-                MessageHandler(Filters.text & ~Filters.command, runtest_handlers.receive_text_answer),
+                CallbackQueryHandler(runtest_handlers.receive_callback_answer, pattern='^ans-(\d+)$', pass_job_queue=True),
+                CallbackQueryHandler(runtest_handlers.show_question, pattern='^q_id-(\d+)$', pass_job_queue=True),
+                MessageHandler(Filters.text & ~Filters.command, runtest_handlers.receive_text_answer, pass_job_queue=True),
             ],
         },
         fallbacks=[
