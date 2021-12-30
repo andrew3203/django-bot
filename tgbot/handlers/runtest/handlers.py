@@ -15,7 +15,7 @@ from utils.models import HelpContext
 
 
 
-def run_test(update: Update, context: CallbackContext) -> str:
+def run_test(update: Update, context: CallbackContext, ) -> str:
     query = update.callback_query
     query.answer('Готово')
     keyboard = [
@@ -62,7 +62,7 @@ def run_test(update: Update, context: CallbackContext) -> str:
     context.user_data['hcnt'] = _do_message(hcnt, reply_markup=markup)    
     return conf.QUESTIONS
 
-def show_question(update: Update, context: CallbackContext) -> str:
+def show_question(update: Update, context: CallbackContext, job_queue) -> str:
     query = update.callback_query
     q_id = query.data.split("-")[-1]
                
@@ -115,7 +115,7 @@ def show_question(update: Update, context: CallbackContext) -> str:
         hcnt = _do_message(hcnt, reply_markup=InlineKeyboardMarkup(keyboard))
     
     context.user_data['hcnt'] = hcnt
-    context.job_queue.run_once(
+    job_queue.run_once(
         no_answer, q.get_total_seconds(), context=hcnt, 
         name=f'{hcnt.user_id}-trackquestion'
     )
