@@ -31,6 +31,7 @@ else:
 ALLOWED_HOSTS = [
     "*",
     'corporatum.club',
+    'www.corporatum.club',
     '31.148.99.116',
 ]  # since Telegram uses a lot of IPs for webhooks
 
