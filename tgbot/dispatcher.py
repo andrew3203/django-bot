@@ -44,24 +44,24 @@ def setup_dispatcher(dp):
     Adding handlers for events from Telegram
     """
     get_gold_handler = ConversationHandler(
-        entry_points=[CallbackQueryHandler(getgol_handlers.run_pay, pattern='^get_gold$', pass_job_queue=True)],
+        entry_points=[CallbackQueryHandler(getgol_handlers.run_pay, pattern='^get_gold$')],
         states={
             PAYMENT_PREPARE: [
-                CallbackQueryHandler(getgol_handlers.choose_payment_type, pattern='pay', pass_job_queue=True),
-                CallbackQueryHandler(getgol_handlers.enter_promocode, pattern='enter_promocode', pass_job_queue=True),
+                CallbackQueryHandler(getgol_handlers.choose_payment_type, pattern='pay'),
+                CallbackQueryHandler(getgol_handlers.enter_promocode, pattern='enter_promocode'),
             ],
             CATCH_PROMOCDE: [
-                CallbackQueryHandler(getgol_handlers.choose_payment_type, pattern='pay', pass_job_queue=True),
-                MessageHandler(Filters.text & ~Filters.command, getgol_handlers.catch_promocode, pass_job_queue=True)
+                CallbackQueryHandler(getgol_handlers.choose_payment_type, pattern='pay'),
+                MessageHandler(Filters.text & ~Filters.command, getgol_handlers.catch_promocode)
             ],
             PAY: [
-                CallbackQueryHandler(getgol_handlers.send_payment, pattern='^pmnt_type-(\d+)$', pass_job_queue=True),
-                MessageHandler(Filters.successful_payment, getgol_handlers.successful_payment_callback, pass_job_queue=True)
+                CallbackQueryHandler(getgol_handlers.send_payment, pattern='^pmnt_type-(\d+)$'),
+                MessageHandler(Filters.successful_payment, getgol_handlers.successful_payment_callback)
             ],
         },
         fallbacks=[
-            CommandHandler('stop', onboarding_handlers.stop, pass_job_queue=True), # -> STOPPING
-            CallbackQueryHandler(profile_handlers.go_back, pattern='^back$', pass_job_queue=True), #  return END
+            CommandHandler('stop', onboarding_handlers.stop), # -> STOPPING
+            CallbackQueryHandler(profile_handlers.go_back, pattern='^back$'), #  return END
 
         ],
         map_to_parent={
@@ -70,17 +70,17 @@ def setup_dispatcher(dp):
         }
     )
     profile_handler = ConversationHandler(
-        entry_points=[CallbackQueryHandler(profile_handlers.ask_input, pattern='^profile$', pass_job_queue=True)],
+        entry_points=[CallbackQueryHandler(profile_handlers.ask_input, pattern='^profile$')],
         states={
-            EDIT_MSG: [CallbackQueryHandler(profile_handlers.edit_msg, pattern='(enter_name)|(enter_email)', pass_job_queue=True)],
+            EDIT_MSG: [CallbackQueryHandler(profile_handlers.edit_msg, pattern='(enter_name)|(enter_email)')],
             TYPING: [
-                MessageHandler(Filters.regex("[^@]+@[^@]+\.[^@]+"), profile_handlers.save_email, pass_job_queue=True), 
-                MessageHandler(Filters.regex(u"(\w+)\s(\w+)"), profile_handlers.save_name, pass_job_queue=True), 
+                MessageHandler(Filters.regex("[^@]+@[^@]+\.[^@]+"), profile_handlers.save_email), 
+                MessageHandler(Filters.regex(u"(\w+)\s(\w+)"), profile_handlers.save_name), 
                 ]
         },
         fallbacks=[
-            CallbackQueryHandler(profile_handlers.go_back, pattern=f'back', pass_job_queue=True), #  return END
-            CommandHandler('stop', onboarding_handlers.stop, pass_job_queue=True), #  return STOPPING
+            CallbackQueryHandler(profile_handlers.go_back, pattern=f'back'), #  return END
+            CommandHandler('stop', onboarding_handlers.stop), #  return STOPPING
         ],
         map_to_parent={
             # Return to second level menu
@@ -91,11 +91,11 @@ def setup_dispatcher(dp):
     )
     run_test_handler = ConversationHandler(
         entry_points=[
-            CallbackQueryHandler(runtest_handlers.run_test, pattern='^(run_first_test)|(run_test)$', pass_job_queue=True)
+            CallbackQueryHandler(runtest_handlers.run_test, pattern='^(run_first_test)|(run_test)$')
         ],
         states={
-            INER: [CallbackQueryHandler(runtest_handlers.run_test, pattern='^run_test$', pass_job_queue=True)], 
-            QUESTIONS: [CallbackQueryHandler(runtest_handlers.show_question, pattern='^q_id-(\d+)$', pass_job_queue=True)],
+            INER: [CallbackQueryHandler(runtest_handlers.run_test, pattern='^run_test$')], 
+            QUESTIONS: [CallbackQueryHandler(runtest_handlers.show_question, pattern='^q_id-(\d+)$')],
             CATCH_ANSWER: [
                 CallbackQueryHandler(runtest_handlers.receive_callback_answer, pattern='^ans-(\d+)$', pass_job_queue=True),
                 CallbackQueryHandler(runtest_handlers.show_question, pattern='^q_id-(\d+)$', pass_job_queue=True),
@@ -103,13 +103,13 @@ def setup_dispatcher(dp):
             ],
         },
         fallbacks=[
-            CallbackQueryHandler(runtest_handlers.change_test_lvl, pattern='^change-lvl$', pass_job_queue=True), # -> END
-            CallbackQueryHandler(runtest_handlers.change_test_theme, pattern='^themes$', pass_job_queue=True), # -> END
-            CallbackQueryHandler(runtest_handlers.test_no_gold, pattern='^get_gold$', pass_job_queue=True), # -> END
-            CallbackQueryHandler(runtest_handlers.need_profile, pattern='^profile$', pass_job_queue=True), # -> END
-            CallbackQueryHandler(runtest_handlers.test_go_back, pattern='^back$', pass_job_queue=True), # -> END
-            CallbackQueryHandler(runtest_handlers.finish_test, pattern='^finish_test$', pass_job_queue=True), # -> done -> END
-            CommandHandler('stop', onboarding_handlers.stop, pass_job_queue=True), # -> STOPPING
+            CallbackQueryHandler(runtest_handlers.change_test_lvl, pattern='^change-lvl$'), # -> END
+            CallbackQueryHandler(runtest_handlers.change_test_theme, pattern='^themes$'), # -> END
+            CallbackQueryHandler(runtest_handlers.test_no_gold, pattern='^get_gold$'), # -> END
+            CallbackQueryHandler(runtest_handlers.need_profile, pattern='^profile$'), # -> END
+            CallbackQueryHandler(runtest_handlers.test_go_back, pattern='^back$'), # -> END
+            CallbackQueryHandler(runtest_handlers.finish_test, pattern='^finish_test$'), # -> done -> END
+            CommandHandler('stop', onboarding_handlers.stop), # -> STOPPING
         ],
         map_to_parent={
             END: SELECTING_LEVEL,
@@ -117,20 +117,20 @@ def setup_dispatcher(dp):
         }
     )
     control_course_sett_handlers = [
-        CallbackQueryHandler(courses_handlers.show_themes, pattern='^themes$', pass_job_queue=True), 
-        CallbackQueryHandler(courses_handlers.show_test, pattern='^theme-(\d+)$', pass_job_queue=True),
-        CallbackQueryHandler(courses_handlers.choose_lvl, pattern='^lvl-(\d+)$', pass_job_queue=True),
+        CallbackQueryHandler(courses_handlers.show_themes, pattern='^themes$'), 
+        CallbackQueryHandler(courses_handlers.show_test, pattern='^theme-(\d+)$'),
+        CallbackQueryHandler(courses_handlers.choose_lvl, pattern='^lvl-(\d+)$'),
     ]
     courses_handler = ConversationHandler(
         entry_points=control_course_sett_handlers,
         states={
             CHOOSER: control_course_sett_handlers,
-            CHOOSE_TEST: [MessageHandler(Filters.text & ~Filters.command, courses_handlers.choose_test, pass_job_queue=True)],  # получаем тест, открываем уровень
+            CHOOSE_TEST: [MessageHandler(Filters.text & ~Filters.command, courses_handlers.choose_test)],  # получаем тест, открываем уровень
             GO: [run_test_handler],
         },
         fallbacks=[
-            CallbackQueryHandler(onboarding_handlers.done, pattern=f'^back$', pass_job_queue=True), # -> END
-            CommandHandler('stop', onboarding_handlers.stop, pass_job_queue=True) # -> STOPPING
+            CallbackQueryHandler(onboarding_handlers.done, pattern=f'^back$'), # -> END
+            CommandHandler('stop', onboarding_handlers.stop), # -> STOPPING
         ],
         map_to_parent={
             END: SELECTING_LEVEL,
@@ -139,24 +139,24 @@ def setup_dispatcher(dp):
         }
     )
     conv_handler = ConversationHandler(
-        entry_points=[CommandHandler('start', onboarding_handlers.start, pass_job_queue=True)],
+        entry_points=[CommandHandler('start', onboarding_handlers.start)],
         states={
             SELECTING_LEVEL: [
                 courses_handler,
                 run_test_handler,
                 profile_handler, 
                 get_gold_handler,
-                CallbackQueryHandler(onboarding_handlers.help, pattern=f'help', pass_job_queue=True),
+                CallbackQueryHandler(onboarding_handlers.help, pattern=f'help'),
             ],
             STOPPING: [
-                CommandHandler('start', onboarding_handlers.start, pass_job_queue=True), 
-                CommandHandler('help', onboarding_handlers.help, pass_job_queue=True), 
-                CommandHandler('addfriend', onboarding_handlers.add_friend, pass_job_queue=True), 
+                CommandHandler('start', onboarding_handlers.start), 
+                CommandHandler('help', onboarding_handlers.help), 
+                CommandHandler('addfriend', onboarding_handlers.add_friend), 
             ],
         },
         fallbacks=[
-            CallbackQueryHandler(onboarding_handlers.stop, pattern=f'^(done)|(exit)$', pass_job_queue=True),
-            CommandHandler('stop', onboarding_handlers.stop, pass_job_queue=True)
+            CallbackQueryHandler(onboarding_handlers.stop, pattern=f'^(done)|(exit)$'),
+            CommandHandler('stop', onboarding_handlers.stop)
         ]
     )
 
@@ -164,13 +164,13 @@ def setup_dispatcher(dp):
     dp.add_handler(conv_handler)
 
     # track chat mabmer
-    dp.add_handler(ChatMemberHandler(track_user.tack_chat_members, ChatMemberHandler.CHAT_MEMBER, pass_job_queue=True))
+    dp.add_handler(ChatMemberHandler(track_user.tack_chat_members, ChatMemberHandler.CHAT_MEMBER))
     # add friend command
-    dp.add_handler(CommandHandler('addfriend', onboarding_handlers.add_friend, pass_job_queue=True))
+    dp.add_handler(CommandHandler('addfriend', onboarding_handlers.add_friend))
     # payments handle
-    dp.add_handler(PreCheckoutQueryHandler(getgol_handlers.precheckout_callback, pass_job_queue=True))
+    dp.add_handler(PreCheckoutQueryHandler(getgol_handlers.precheckout_callback))
     # polls handle
-    dp.add_handler(PollAnswerHandler(runtest_handlers.receive_poll_answer , pass_job_queue=True))
+    dp.add_handler(PollAnswerHandler(runtest_handlers.receive_poll_answer))
 
     # files
     # dp.add_handler(MessageHandler(Filters.animation, files.show_file_id))
