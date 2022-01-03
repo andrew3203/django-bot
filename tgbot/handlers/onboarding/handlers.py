@@ -16,7 +16,7 @@ from utils.models import HelpContext
     
 
 
-def start(update: Update, context: CallbackContext) -> str:
+def start(update: Update, context: CallbackContext, job_queue) -> str:
     u, created = User.get_user_and_created(update, context)
     payload = context.args
     hcnt = HelpContext(
@@ -41,7 +41,7 @@ def start(update: Update, context: CallbackContext) -> str:
             hcnt.role = 'ask_subscribe'
             hcnt = _do_message(hcnt, reply_markup=reply_markup, disable_web_page_preview=True)
             name = f'{u.user_id}-checksubscribe'
-            context.job_queue.run_once(is_user_subscribed, 15, context=hcnt, name=name)
+            job_queue.run_once(is_user_subscribed, 15, context=hcnt, name=name)
             context.user_data['hcnt'] = hcnt
         else:
             hcnt.profile_status = u'Мой профиль'
@@ -80,7 +80,7 @@ def done(update: Update, context: CallbackContext) ->str:
     context.user_data['hcnt'] = hcnt
     return END
 
-def stop(update: Update, context: CallbackContext) -> str:
+def stop(update: Update, context: CallbackContext, job_queue) -> str:
     hcnt = context.user_data['hcnt']
     hcnt.role = 'stop'
     hcnt.action = 'edit_msg'
