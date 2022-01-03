@@ -5,6 +5,8 @@
 import sys
 import logging
 from typing import Dict
+from queue import Queue
+from threading import Thread
 
 import telegram.error
 from telegram import Bot, Update, BotCommand
@@ -15,8 +17,7 @@ from telegram.ext import (
     ConversationHandler,
     ChatMemberHandler,
     PreCheckoutQueryHandler,
-    PollAnswerHandler,
-    JobQueue
+    PollAnswerHandler
 )
 
 from corporatum.celery import app  # event processing in async mode
@@ -198,21 +199,6 @@ def run_pooling():
     updater.idle()
 
 
-# Global variable - best way I found to init Telegram bot
-bot = Bot(TELEGRAM_TOKEN)
-try:
-    TELEGRAM_BOT_USERNAME = bot.get_me()["username"]
-except telegram.error.Unauthorized:
-    logging.error(f"Invalid TELEGRAM_TOKEN.")
-    sys.exit(1)
-
-
-@app.task(ignore_result=True)
-def process_telegram_event(update_json):
-    update = Update.de_json(update_json, bot)
-    dispatcher.process_update(update)
-
-
 def set_up_commands(bot_instance: Bot) -> None:
     langs_with_commands: Dict[str, Dict[str, str]] = {
         'en': {
@@ -239,12 +225,33 @@ def set_up_commands(bot_instance: Bot) -> None:
         )
 
 
+
+# Glo
+# bal variable - best way I found to init Telegram bot
+bot = Bot(TELEGRAM_TOKEN)
+try:
+    TELEGRAM_BOT_USERNAME = bot.get_me()["username"]
+except telegram.error.Unauthorized:
+    logging.error(f"Invalid TELEGRAM_TOKEN.")
+    sys.exit(1)
+
 if not DEBUG:
     set_up_commands(bot)
 
-MAIN_QUEUE = JobQueue()
 n_workers = 0 if DEBUG else 4
-dispatcher = setup_dispatcher(Dispatcher(
-    bot, update_queue=None, job_queue=MAIN_QUEUE,
-    workers=n_workers, use_context=True
-))
+#dispatcher = setup_dispatcher(Dispatcher(bot, update_queue=None, workers=n_workers, use_context=True))
+updater = Updater(token=TELEGRAM_TOKEN)
+update_queue = Queue()
+dispatcher = Dispatcher(bot, update_queue=None, workers=n_workers, use_context=True)
+dispatcher = setup_dispatcher(dispatcher)
+
+# Start the thread
+thread = Thread(target=dispatcher.start, name='dispatcher')
+thread.start()
+
+
+@app.task(ignore_result=True)
+def process_telegram_event(update_json):
+    update = Update.de_json(update_json, bot)
+    #dispatcher.process_update(update)
+    update_queue.put(update)
