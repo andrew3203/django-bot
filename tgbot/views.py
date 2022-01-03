@@ -4,7 +4,7 @@ from django.views import View
 from django.http import JsonResponse
 
 from corporatum.settings import DEBUG
-from tgbot.dispatcher import process_telegram_event, set_to_start
+from tgbot.dispatcher import process_telegram_event
 
 logger = logging.getLogger(__name__)
 
