@@ -17,8 +17,14 @@ import debug_toolbar
 from django.contrib import admin
 from django.urls import path, include
 
+#handler400 = 'website.views.error_400'
+#handler404 = 'website.views.error_404'
+#handler403 = 'website.views.error_403'
+#handler500 = 'website.views.error_500'
+
+
 urlpatterns = [
-    path('tgadmin/', admin.site.urls),
-    path('', include('tgbot.urls')),
+    path('tgbot/', include('tgbot.urls')),
+    path('control/', admin.site.urls),
     path('__debug__/', include(debug_toolbar.urls)),
 ]

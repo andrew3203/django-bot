@@ -50,6 +50,7 @@ INSTALLED_APPS = [
 
     # local apps
     'tgbot.apps.TgbotConfig',
+    'website.apps.WebsiteConfig'
 ]
 
 MIDDLEWARE = [
