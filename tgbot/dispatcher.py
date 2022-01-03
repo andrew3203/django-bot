@@ -15,7 +15,8 @@ from telegram.ext import (
     ConversationHandler,
     ChatMemberHandler,
     PreCheckoutQueryHandler,
-    PollAnswerHandler
+    PollAnswerHandler,
+    JobQueue
 )
 
 from corporatum.celery import app  # event processing in async mode
@@ -241,5 +242,9 @@ def set_up_commands(bot_instance: Bot) -> None:
 if not DEBUG:
     set_up_commands(bot)
 
+MAIN_QUEUE = JobQueue()
 n_workers = 0 if DEBUG else 4
-dispatcher = setup_dispatcher(Dispatcher(bot, update_queue=None, workers=n_workers, use_context=True))
+dispatcher = setup_dispatcher(Dispatcher(
+    bot, update_queue=None, job_queue=MAIN_QUEUE,
+    workers=n_workers, use_context=True
+))
