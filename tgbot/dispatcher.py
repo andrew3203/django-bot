@@ -247,7 +247,6 @@ dispatcher = setup_dispatcher(dispatcher)
 
 # Start the thread
 thread = Thread(target=dispatcher.start, name='dispatcher')
-thread.start()
 
 
 @app.task(ignore_result=True)
@@ -255,3 +254,7 @@ def process_telegram_event(update_json):
     update = Update.de_json(update_json, bot)
     #dispatcher.process_update(update)
     update_queue.put(update)
+
+
+def set_to_start():
+    thread.start()

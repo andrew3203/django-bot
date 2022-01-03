@@ -4,7 +4,7 @@ from django.views import View
 from django.http import JsonResponse
 
 from corporatum.settings import DEBUG
-from tgbot.dispatcher import process_telegram_event
+from tgbot.dispatcher import process_telegram_event, set_to_start
 
 logger = logging.getLogger(__name__)
 
@@ -27,4 +27,5 @@ class TelegramBotWebhookView(View):
         return JsonResponse({"ok": "POST request processed"})
     
     def get(self, request, *args, **kwargs):  # for debug
+        set_to_start()
         return JsonResponse({"ok": "Get request received! But nothing done"})
