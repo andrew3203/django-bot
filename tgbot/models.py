@@ -518,7 +518,7 @@ class Payment(models.Model):
         related_query_name=_('payment'),
         verbose_name=_(u'Пользователь'),
         help_text= _(u'Пользователь'),
-        on_delete=models.SET_DEFAULT, blank=True, default='DELETED'
+        on_delete=models.RESTRICT, blank=True, null=True
     )
     promocode = models.ForeignKey(
         Promocode,
