@@ -242,7 +242,7 @@ n_workers = 0 if DEBUG else 4
 #dispatcher = setup_dispatcher(Dispatcher(bot, update_queue=None, workers=n_workers, use_context=True))
 updater = Updater(token=TELEGRAM_TOKEN)
 update_queue = Queue()
-dispatcher = Dispatcher(bot, update_queue=None, workers=n_workers, use_context=True)
+dispatcher = Dispatcher(bot, update_queue=update_queue, workers=n_workers, use_context=True)
 dispatcher = setup_dispatcher(dispatcher)
 
 # Start the thread
