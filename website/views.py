@@ -1,5 +1,10 @@
 from django.shortcuts import render
+from django.http import JsonResponse
 
+
+
+def index(request):
+    return JsonResponse({"error": "sup hacker"})
 
 def error_400(request, exception):
         data = {}

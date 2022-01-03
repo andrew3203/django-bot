@@ -139,7 +139,7 @@ def setup_dispatcher(dp):
         }
     )
     conv_handler = ConversationHandler(
-        entry_points=[CommandHandler('start', onboarding_handlers.start)],
+        entry_points=[CommandHandler('start', onboarding_handlers.start, pass_job_queue=True)],
         states={
             SELECTING_LEVEL: [
                 courses_handler,
@@ -243,4 +243,3 @@ if not DEBUG:
 
 n_workers = 0 if DEBUG else 4
 dispatcher = setup_dispatcher(Dispatcher(bot, update_queue=None, workers=n_workers, use_context=True))
-dispatcher.start()
