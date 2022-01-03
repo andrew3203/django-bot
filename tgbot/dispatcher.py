@@ -149,7 +149,7 @@ def setup_dispatcher(dp):
                 CallbackQueryHandler(onboarding_handlers.help, pattern=f'help'),
             ],
             STOPPING: [
-                CommandHandler('start', onboarding_handlers.start), 
+                CommandHandler('start', onboarding_handlers.start, pass_job_queue=True), 
                 CommandHandler('help', onboarding_handlers.help), 
                 CommandHandler('addfriend', onboarding_handlers.add_friend), 
             ],
