@@ -11,6 +11,7 @@ from threading import Thread
 import telegram.error
 from telegram import Bot, Update, BotCommand
 from telegram.ext import (
+    JobQueue,
     Updater, Dispatcher, Filters,
     CommandHandler, MessageHandler,
     CallbackQueryHandler,
@@ -243,6 +244,15 @@ if not DEBUG:
     set_up_commands(bot)
 
 n_workers = 0 if DEBUG else 4
-dispatcher = Dispatcher(bot, update_queue=None, workers=n_workers, use_context=True)
-dispatcher = setup_dispatcher(dispatcher)
+queue = JobQueue()
+dispatcher = setup_dispatcher(
+    Dispatcher(
+        bot,
+        job_queue=queue,
+        update_queue=None, 
+        workers=n_workers, 
+        use_context=True
+    )
+)
+
 dispatcher.job_queue.start()
