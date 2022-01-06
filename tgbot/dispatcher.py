@@ -225,6 +225,11 @@ def set_up_commands(bot_instance: Bot) -> None:
         )
 
 
+@app.task(ignore_result=True)
+def process_telegram_event(update_json):
+    update = Update.de_json(update_json, bot)
+    dispatcher.process_update(update)
+
 
 # Glo
 # bal variable - best way I found to init Telegram bot
@@ -240,8 +245,3 @@ if not DEBUG:
 
 n_workers = 0 if DEBUG else 4
 dispatcher = setup_dispatcher(Dispatcher(bot, update_queue=None, workers=n_workers, use_context=True))
-
-@app.task(ignore_result=True)
-def process_telegram_event(update_json):
-    update = Update.de_json(update_json, bot)
-    dispatcher.process_update(update)
