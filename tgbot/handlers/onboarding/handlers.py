@@ -28,7 +28,6 @@ def start(update: Update, context: CallbackContext) -> str:
         to_top=False,
         navigation=dict()
     )
-    update.message.reply_text(f'Работает,\n{payload} = {FROM_MY_CHANEL}\n iscreated = {created}', parse_mode=ParseMode.HTML)
     if payload == FROM_MY_CHANEL:
         if not created: hcnt.profile_status = u'Мой профиль'
         u.deep_link = payload
