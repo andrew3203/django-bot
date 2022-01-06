@@ -4,7 +4,7 @@ python-dotenv
 ipython
 
 # Django
-django==3.2.10
+django
 django-timezone-field 
 django-cors-headers
 django-debug-toolbar
@@ -21,7 +21,7 @@ psycopg2-binary
 dj-database-url
 
 # Distributed tasks
-celery==5.2.2
+celery
 redis
 django-celery-beat
 
