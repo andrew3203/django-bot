@@ -1,5 +1,5 @@
 from telegram import (
-    Update,
+    Update, ParseMode,
     InlineKeyboardButton, InlineKeyboardMarkup,
 )
 from telegram.ext import CallbackContext
@@ -28,6 +28,7 @@ def start(update: Update, context: CallbackContext) -> str:
         to_top=False,
         navigation=dict()
     )
+    update.message.reply_text(f'Работает,\npayload = {FROM_MY_CHANEL}\n iscreated = {created}', parse_mode=ParseMode.HTML)
     if payload == FROM_MY_CHANEL:
         if not created: hcnt.profile_status = u'Мой профиль'
         u.deep_link = payload
@@ -102,6 +103,6 @@ def add_friend(update: Update, context: CallbackContext) -> str:
     url = helpers.create_deep_linked_url(bot.username, rearg)
     msg = SupportMessage.get_message(hcnt)
     keyboard = InlineKeyboardMarkup.from_button(InlineKeyboardButton(text="Запустить бота", url=url))
-    update.message.reply_text(msg.text, reply_markup=keyboard)
+    update.message.reply_text(msg.text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
     return STOPPING
 

@@ -141,7 +141,7 @@ def setup_dispatcher(dp):
         }
     )
     conv_handler = ConversationHandler(
-        entry_points=[CommandHandler('start', onboarding_handlers.start, pass_job_queue=True)],
+        entry_points=[CommandHandler('start', onboarding_handlers.start)],
         states={
             SELECTING_LEVEL: [
                 courses_handler,
@@ -175,7 +175,7 @@ def setup_dispatcher(dp):
     dp.add_handler(PollAnswerHandler(runtest_handlers.receive_poll_answer))
 
     # files
-    # dp.add_handler(MessageHandler(Filters.animation, files.show_file_id))
+    dp.add_handler(MessageHandler(Filters.animation, files.show_file_id))
     
     # handling errors
     dp.add_error_handler(error.send_stacktrace_to_tg_chat)
@@ -225,7 +225,7 @@ def set_up_commands(bot_instance: Bot) -> None:
         )
 
 
-@app.task(ignore_result=False)
+@app.task(ignore_result=True)
 def process_telegram_event(update_json):
     update = Update.de_json(update_json, bot)
     dispatcher.process_update(update)
