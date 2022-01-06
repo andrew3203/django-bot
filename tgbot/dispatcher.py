@@ -249,10 +249,9 @@ dispatcher = setup_dispatcher(
     Dispatcher(
         bot,
         job_queue=queue,
-        update_queue=None, 
         workers=n_workers, 
+        update_queue=None, 
         use_context=True
     )
 )
-
 dispatcher.job_queue.start()
