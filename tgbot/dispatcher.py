@@ -70,7 +70,8 @@ def setup_dispatcher(dp):
         map_to_parent={
             END: SELECTING_LEVEL,
             STOPPING: STOPPING,
-        }
+        },
+        per_message=True
     )
     profile_handler = ConversationHandler(
         entry_points=[CallbackQueryHandler(profile_handlers.ask_input, pattern='^profile$')],
@@ -90,7 +91,8 @@ def setup_dispatcher(dp):
             END: SELECTING_LEVEL,
             # End conversation altogether
             STOPPING: STOPPING,
-        }
+        },
+        per_message=True
     )
     run_test_handler = ConversationHandler(
         entry_points=[
@@ -117,7 +119,8 @@ def setup_dispatcher(dp):
         map_to_parent={
             END: SELECTING_LEVEL,
             STOPPING: STOPPING,
-        }
+        },
+        per_message=True
     )
     control_course_sett_handlers = [
         CallbackQueryHandler(courses_handlers.show_themes, pattern='^themes$', pass_job_queue=True), 
@@ -139,7 +142,8 @@ def setup_dispatcher(dp):
             END: SELECTING_LEVEL,
             SELECTING_LEVEL: SELECTING_LEVEL, 
             STOPPING: STOPPING,
-        }
+        },
+        per_message=True
     )
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler('start', onboarding_handlers.start, pass_job_queue=True)],
@@ -160,7 +164,8 @@ def setup_dispatcher(dp):
         fallbacks=[
             CallbackQueryHandler(onboarding_handlers.stop, pattern=f'^(done)|(exit)$', pass_job_queue=True),
             CommandHandler('stop', onboarding_handlers.stop, pass_job_queue=True)
-        ]
+        ],
+        per_message=True
     )
 
     # main handle
@@ -254,4 +259,5 @@ dispatcher = setup_dispatcher(
         use_context=True
     )
 )
-dispatcher.job_queue.start()
+queue.set_dispatcher(dispatcher)
+queue.start()
