@@ -71,7 +71,7 @@ def setup_dispatcher(dp):
             END: SELECTING_LEVEL,
             STOPPING: STOPPING,
         },
-        per_message=True
+        per_message=False
     )
     profile_handler = ConversationHandler(
         entry_points=[CallbackQueryHandler(profile_handlers.ask_input, pattern='^profile$')],
@@ -92,7 +92,7 @@ def setup_dispatcher(dp):
             # End conversation altogether
             STOPPING: STOPPING,
         },
-        per_message=True
+        per_message=False
     )
     run_test_handler = ConversationHandler(
         entry_points=[
@@ -120,7 +120,7 @@ def setup_dispatcher(dp):
             END: SELECTING_LEVEL,
             STOPPING: STOPPING,
         },
-        per_message=True
+        per_message=False
     )
     control_course_sett_handlers = [
         CallbackQueryHandler(courses_handlers.show_themes, pattern='^themes$', pass_job_queue=True), 
@@ -143,7 +143,7 @@ def setup_dispatcher(dp):
             SELECTING_LEVEL: SELECTING_LEVEL, 
             STOPPING: STOPPING,
         },
-        per_message=True
+        per_message=False
     )
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler('start', onboarding_handlers.start, pass_job_queue=True)],
@@ -165,7 +165,7 @@ def setup_dispatcher(dp):
             CallbackQueryHandler(onboarding_handlers.stop, pattern=f'^(done)|(exit)$', pass_job_queue=True),
             CommandHandler('stop', onboarding_handlers.stop, pass_job_queue=True)
         ],
-        per_message=True
+        per_message=False
     )
 
     # main handle
