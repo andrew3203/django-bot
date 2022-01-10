@@ -558,7 +558,7 @@ class SupportMessage(models.Model):
     role = models.CharField(_(u'Роль'), max_length=20)
     file = models.FileField(_(u'Файл'), upload_to='message/', blank=True)
     is_active= models.BooleanField(_(u'Использовать в качестве ответа'), default=False)
-
+    available_words = models.TextField(_(u'Доступные сокращения'), blank=True)
     class Meta:
         verbose_name = _('Служебное сообщение')
         verbose_name_plural = _('Служебные сообщения')
@@ -573,16 +573,10 @@ class SupportMessage(models.Model):
         N = len(re) - 1
         msq = re[random.randint(0, N)]  if N > 0 else re[0]
 
-        with open('logs.txt', 'a+') as tracker:
-            dat = f'{cnt.role}\n'
-            tracker.write(dat)
-
         if cnt.keywords:
             keyword_processor = KeywordProcessor()
             keyword_processor.add_keywords_from_dict(cnt.keywords)
             msq.text = keyword_processor.replace_keywords(msq.text)
-
-        
         return msq
 
     @staticmethod

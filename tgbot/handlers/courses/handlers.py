@@ -98,9 +98,10 @@ def choose_lvl(update: Update, context: CallbackContext) -> str:
 
     test = Test.objects.get(id=test_id)
     theme = Theme.objects.get(id=theme_id)
-
+    user = User.get_user(update, context)
+    
     hcnt.keywords = {
-        **hcnt.keywords, **theme.to_flashtext(), **test.to_flashtext()
+        **user.to_flashtext(), **theme.to_flashtext(), **test.to_flashtext()
     }
     reply_markup = InlineKeyboardMarkup([
             [InlineKeyboardButton('Начать', callback_data=f'run_test')],

@@ -69,9 +69,12 @@ class UserAdmin(admin.ModelAdmin):
         'updated_at',
         'is_blocked_bot',
         'is_subscribed',
-        'deep_link'
+        'deep_link',
     )
     actions = ['broadcast']
+
+    def test():
+        return 'alalalal'
 
     def broadcast(self, request, queryset):
         """ Select users via check mark in django-admin panel, then select "Broadcast" to send message"""
@@ -295,10 +298,12 @@ class SupportMessageAdmin(admin.ModelAdmin):
             'fields': (
                 ("role", 'is_active'),
                 ('file'),
+                ('available_words',),
                 ('text')
             ),
         }),
     )
+    #readonly_fields = ('available_words',)
     
     
 admin.site.site_title = 'Управление курсами CORPORATUM'

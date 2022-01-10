@@ -19,7 +19,6 @@ def run_test(update: Update, context: CallbackContext) -> str:
     query = update.callback_query
     query.answer('Готово')
     keyboard = [
-        [InlineKeyboardButton('К курсам', callback_data=f'themes')],
         [InlineKeyboardButton('Выйти', callback_data=f'back')]
     ]
     hcnt = context.user_data['hcnt']
@@ -27,12 +26,15 @@ def run_test(update: Update, context: CallbackContext) -> str:
         test_id = Test.get_test_id()
         hcnt.navigation['test'] = test_id
         lvl = 0
+        user = User.get_user(update, context)
+        test = Test.objects.get(id=test_id)
     else:
         test_id = hcnt.navigation.get('test')
-        lvl = hcnt.navigation.get('lvl')
-        keyboard[0].append(
+        lvl = hcnt.navigation.get('question_lvl')
+        keyboard.insert(0, [
+            InlineKeyboardButton('К курсам', callback_data=f'themes'),
             InlineKeyboardButton('Другая сложность', callback_data=f'change-lvl')
-        )
+        ])
 
     user = User.get_user(update, context)
     if user.is_active or query.data == 'run_first_test':
@@ -55,7 +57,7 @@ def run_test(update: Update, context: CallbackContext) -> str:
         hcnt.profile_status = btn_name
 
     hcnt.role = role
-    hcnt.keywords[lvl] = ['lvl']
+    hcnt.keywords[lvl] = ['question_lvl']
     hcnt.action = 'edit_msg'
     keyboard[-1].append(InlineKeyboardButton(btn_name, callback_data=data))
     markup = InlineKeyboardMarkup(keyboard)
@@ -84,7 +86,7 @@ def show_question(update: Update, context: CallbackContext) -> str:
     remove_job_if_exists(f'{hcnt.user_id}-trackquestion', context)
     hcnt = _del_kb_message_if_exists(context, hcnt, q)
 
-    hcnt.keywords = {**hcnt.keywords, **u.to_flashtext(), **q.to_flashtext()}
+    hcnt.keywords = {**u.to_flashtext(), **q.to_flashtext()}
     hcnt.role = 'show_question'
     hcnt.action = 'edit_msg'
     hcnt.navigation['q_id'] = q_id
@@ -138,7 +140,7 @@ def no_answer(context: CallbackContext) -> str:
     q = Question.objects.get(id=q_id)
     u = User.objects.get(user_id=hcnt.user_id )
     d_N = {1 + questions.index(q_id): 'question_position'}
-    hcnt.keywords = {**hcnt.keywords, **u.to_flashtext(), **q.to_flashtext(), **d_N}
+    hcnt.keywords = {**u.to_flashtext(), **q.to_flashtext(), **d_N}
 
     hcnt.action == 'edit_msg'; hcnt.role = 'hide_question'
     hcnt = _do_message(hcnt)
@@ -237,7 +239,7 @@ def _check_answer(context: CallbackContext, answer_text: str, q: Question) -> st
     cc = 'Ответ верный' if is_correct else 'Ответ не верный'
     hcnt.keywords[cc] = ['is_correct']
     hcnt.keywords[ans] = ['answer']
-    hcnt.keywords = {**hcnt.keywords, **user.to_flashtext(), **q.to_flashtext()}
+    hcnt.keywords = {**user.to_flashtext(), **q.to_flashtext()}
     new_q_id = Test.get_question_id(test_id=hcnt.navigation['test'], last_q_id=q.id)
 
     if is_correct:

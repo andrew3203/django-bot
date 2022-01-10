@@ -220,13 +220,11 @@ def set_up_commands(bot_instance: Bot) -> None:
         'en': {
             'start': 'Start bot 🚀',
             'help': 'Need help ℹ️',
-            'addfriend': 'Invite Friend!',
             'stop': 'Stop the process 📛',
         },
         'ru': {
             'start': 'Запустить бота 🚀',
-            'help': 'Нужна помошь ℹ️',
-            'addfriend': 'Пригласить друзей!',
+            'help': 'Нужна помощь ℹ️',
             'stop': 'Остановить процесс 📛',
         }
     }

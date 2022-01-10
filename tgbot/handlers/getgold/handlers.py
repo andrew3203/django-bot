@@ -89,9 +89,9 @@ def send_payment(update: Update, context: CallbackContext) ->str:
     hcnt.keywords = {**hcnt.keywords, **p}
     hcnt.role = 'send_invoice'
     msg = SupportMessage.get_message(hcnt)
-    prices = [LabeledPrice(f'{n["gold_amount"]} едениц золота:', n['cost'])]
+    prices = [LabeledPrice(f'{n["gold_amount"]} единиц золота:', n['cost'])]
     chat_id = query.message.chat_id
-    title = f'Покупка {n["gold_amount"]} едениц золота:'
+    title = f'Покупка {n["gold_amount"]} единиц золота:'
     description = msg.text
     payload = "GetGold"
     provider_token = PROVIDER_TOKEN
