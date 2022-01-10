@@ -233,12 +233,9 @@ def _check_answer(context: CallbackContext, answer_text: str, q: Question) -> st
     hcnt =  context.user_data['hcnt']
     user = User.objects.get(user_id=hcnt.user_id)
 
-    is_correct, ans = q.save_and_check_answer(answer_text, user, hcnt.navigation['start_time'])
-    cc = 'Ответ верный' if is_correct else 'Ответ не верный'
-    hcnt.keywords[cc] = ['is_correct']
-    hcnt.keywords[ans] = ['answer']
-    hcnt.keywords = {**user.to_flashtext(), **q.to_flashtext()}
+    is_correct, kw = q.save_and_check_answer(answer_text, user, hcnt.navigation['start_time'])
     new_q_id = Test.get_question_id(test_id=hcnt.navigation['test'], last_q_id=q.id)
+    hcnt.keywords = kw
 
     if is_correct:
         remove_job_if_exists(f'{hcnt.user_id}-trackquestion', context)

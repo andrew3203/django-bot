@@ -209,8 +209,7 @@ class Question(models.Model):
             is_correct=is_correct,
         )
         ans.save()
-
-        return is_correct, ans_to_print
+        return is_correct, ans.to_flashtext()
 
     def get_difficulty_lvl_name(self):
         return str(dict(self.DifficultyLvl.choices).get(self.difficulty_lvl))
@@ -301,8 +300,8 @@ class Test(models.Model):
             ans = Answer.objects.filter(user__user_id=user_id, question__id=q_id).first()
             am = (am + 1) if ans.is_correct else am
         return {
-            am: ['right_amount'],
-            len(questions): ['questions_amount'],
+            f'{am}': ['right_amount'],
+            f'{len(questions)}': ['questions_amount'],
             f'{am / len(questions):.3f}': ['right_percent'],
             f'{1 - am / len(questions):.3f}': ['wrong_percent']
         }
@@ -378,9 +377,10 @@ class Answer(models.Model):
         return f'Ответ от: {str(self.user)}'
 
     def to_flashtext(self):
-        is_correct = 'Да' if self.is_correct else 'Нет'
+        is_correct = 'Ответ верный' if self.is_correct else 'Ответ не верный'
         d1 =  {
-            is_correct: ['is_correct', 'is_answer_correct'],
+            is_correct: ['is_correct'],
+            self.answer_text: ['answer'],
             self.time_to_solve.strftime("%H:%M:%S"): ['time_to_solve'],
         }
         d2 = self.question.to_flashtext()
@@ -429,7 +429,7 @@ class PaymentPlan(models.Model):
             ans += f'<b>{plan.short_name}:</b>\n'
             ans += f' - <b>{plan.gold_amount}</b> золотых\n'
             ans += f' - <b>{cost}</b> стоимость\n'
-            ans += '----------'
+            ans += '----------\n'
 
         return {ans[:-11]: ['plans'] }, names
 

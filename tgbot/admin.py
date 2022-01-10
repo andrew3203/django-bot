@@ -303,7 +303,7 @@ class SupportMessageAdmin(admin.ModelAdmin):
             ),
         }),
     )
-    #readonly_fields = ('available_words',)
+    readonly_fields = ('available_words',)
     
     
 admin.site.site_title = 'Управление курсами CORPORATUM'
