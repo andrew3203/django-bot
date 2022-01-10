@@ -26,11 +26,9 @@ def run_test(update: Update, context: CallbackContext) -> str:
         test_id = Test.get_test_id()
         hcnt.navigation['test'] = test_id
         lvl = 0
-        user = User.get_user(update, context)
-        test = Test.objects.get(id=test_id)
     else:
         test_id = hcnt.navigation.get('test')
-        lvl = hcnt.navigation.get('question_lvl')
+        lvl = int(hcnt.navigation.get('lvl'))
         keyboard.insert(0, [
             InlineKeyboardButton('К курсам', callback_data=f'themes'),
             InlineKeyboardButton('Другая сложность', callback_data=f'change-lvl')
@@ -38,7 +36,7 @@ def run_test(update: Update, context: CallbackContext) -> str:
 
     user = User.get_user(update, context)
     if user.is_active or query.data == 'run_first_test':
-        if user.gold - int(lvl) >= 0:
+        if user.gold - lvl >= 0:
             q_id = Test.get_question_id(test_id)
             role = 'start_test'
             data = f'q_id-{q_id}'

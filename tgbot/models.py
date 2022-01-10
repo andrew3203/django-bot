@@ -426,9 +426,9 @@ class PaymentPlan(models.Model):
                 'name': plan.short_name, 
                 'cost': cost}
             )
-            ans += f'<bold>{plan.short_name}:</bold>\n'
-            ans += f' - <bold>{plan.gold_amount}</bold> золотых\n'
-            ans += f' - <bold>{cost}</bold> стоимость\n'
+            ans += f'<b>{plan.short_name}:</b>\n'
+            ans += f' - <b>{plan.gold_amount}</b> золотых\n'
+            ans += f' - <b>{cost}</b> стоимость\n'
             ans += '----------'
 
         return {ans[:-11]: ['plans'] }, names

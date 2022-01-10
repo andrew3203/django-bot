@@ -55,7 +55,7 @@ def start_deep_linked(update: Update, context: CallbackContext) -> str:
 
 def help(update: Update, context: CallbackContext) -> str:
     hcnt = context.user_data['hcnt']
-    hcnt.action='edit_msg'
+    hcnt.role='help_command'; hcnt.action='edit_msg'
     context.user_data['hcnt'] = _do_message(hcnt)
     return STOPPING
 
@@ -89,6 +89,10 @@ def add_friend(update: Update, context: CallbackContext) -> str:
     hcnt = context.user_data['hcnt']
     hcnt.role = role
     hcnt.action = 'edit_msg'
+    context.bot.send_message(
+        chat_id= hcnt.user_id,
+        text='Перешлите сообщение ниже другу чтобы посоветовать ему бота!'
+    )
     url = helpers.create_deep_linked_url(bot.username, rearg)
     markup = InlineKeyboardMarkup.from_button(InlineKeyboardButton(text="Запустить бота", url=url))
     context.user_data['hcnt'] = _do_message(hcnt, reply_markup=markup)
