@@ -258,15 +258,15 @@ if not DEBUG:
     set_up_commands(bot)
 
 n_workers = 0 if DEBUG else 4
-#queue = JobQueue()
+queue = JobQueue()
 dispatcher = setup_dispatcher(
     Dispatcher(
         bot,
-        #job_queue=queue,
+        job_queue=queue,
         workers=n_workers, 
         update_queue=None,
-        #use_context=True
+        use_context=True
     )
 )
-#queue.set_dispatcher(dispatcher)
-#queue.start()
+queue.set_dispatcher(dispatcher)
+queue.start()
