@@ -24,10 +24,8 @@ def ask_input(update: Update, context: CallbackContext) -> str:
     hcnt = context.user_data['hcnt']
     hcnt.user_id = u.user_id
     hcnt.role = 'ask_profile'
-    hcnt.to_top = False
 
     if u.is_active:
-        hcnt.to_top = True
         keyboard[-1].append(InlineKeyboardButton('Готово', callback_data=f'back'))
         
     markup = InlineKeyboardMarkup(keyboard)
@@ -45,7 +43,6 @@ def edit_msg(update: Update, context: CallbackContext) -> str:
     update.callback_query.answer('Введите данные')
     hcnt = context.user_data['hcnt']
     hcnt.action = 'edit_msg'
-    hcnt.to_top = False
     hcnt.role = update.callback_query.data
 
     context.user_data['hcnt'] = _do_message(hcnt)
@@ -68,8 +65,8 @@ def save_email(update: Update, context: CallbackContext) -> str:
         if user.last_name:
             user.is_active = True
         user.save()
+        hcnt.keywords = {**hcnt.keywords, **user.to_flashtext()}
         hcnt.role = 'catch_data'
-
         context.user_data['hcnt'] = _do_message(hcnt)
         return ask_input(update, context)
 
@@ -94,12 +91,12 @@ def save_name(update: Update, context: CallbackContext) -> str:
         if user.email:
             user.is_active = True
         user.save()
+        hcnt.keywords = {**hcnt.keywords, **user.to_flashtext()}
         hcnt.role = 'catch_data'
         context.user_data['hcnt'] = _do_message(hcnt)
         return ask_input(update, context)
 
 def go_back(update: Update, context: CallbackContext) -> str:
-    print('go_back')
     context.user_data['hcnt'].role = 'choose_todo'
     context.user_data['hcnt'].action = 'edit_msg'
     return onboarding_handlers.done(update, context)

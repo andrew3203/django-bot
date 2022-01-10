@@ -185,6 +185,7 @@ def send_selecting_lvl(update: Update, context: CallbackContext):
         ],
         [InlineKeyboardButton(u'Все курсы', callback_data='themes')],
         [InlineKeyboardButton(u'Получить золото', callback_data='get_gold')],
+        [InlineKeyboardButton(u'Пригасить друга', callback_data='invate_friend')],
         [InlineKeyboardButton(u'Помошь', callback_data='help')],
     ])
     if update.callback_query is not None:

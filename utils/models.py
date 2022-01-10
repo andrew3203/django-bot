@@ -34,7 +34,6 @@ class HelpContext(object):
         user_id: int,
         message_id: int = None,
         action: str = 'send', 
-        to_top: bool = False, 
         keywords: dict = None, 
         navigation: dict = None, 
         profile_status: str = None,
@@ -46,8 +45,6 @@ class HelpContext(object):
         self.__dict__.update({'user_id': user_id})
         self.action = action
         self.__dict__.update({'action': action})
-        self.to_top = to_top
-        self.__dict__.update({'to_top': to_top})
         self.message_id = message_id
         self.__dict__.update({'message_id': message_id})
         self.navigation = navigation

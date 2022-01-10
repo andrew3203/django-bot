@@ -298,7 +298,7 @@ class Test(models.Model):
         questions = list(Question.objects.filter(test__id=test_id).values_list('id', flat=True))
         am = 0
         for q_id in questions:
-            ans  =Answer.objects.filter(user__user_id=user_id, question__id=q_id).first()
+            ans = Answer.objects.filter(user__user_id=user_id, question__id=q_id).first()
             am = (am + 1) if ans.is_correct else am
         return {
             am: ['right_amount'],
@@ -610,5 +610,6 @@ def do_payment(u_id, payment_plan_id, promocode_id):
 
     user.add_gold(plan)
     user.save()
+    return user
    
     

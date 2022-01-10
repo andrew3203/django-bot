@@ -21,7 +21,6 @@ def show_themes(update: Update, context: CallbackContext) -> str:
     for theme in Theme.get_themes():
         keyboard.append([InlineKeyboardButton(theme.short_name, callback_data=f'theme-{theme.id}')])
     keyboard.append([InlineKeyboardButton('В меню', callback_data=f'back')])
-    hcnt.to_top = True
     hcnt.role = 'all_themes'
     hcnt.action = 'edit_msg'
     hcnt = _do_message(hcnt, reply_markup=InlineKeyboardMarkup(keyboard))
@@ -43,7 +42,6 @@ def show_test(update: Update, context: CallbackContext) -> str:
     navigation['theme'] = theme_id
     hcnt = context.user_data['hcnt']
     hcnt.navigation = navigation
-    hcnt.to_top = False
     hcnt.role = 'show_tests'
     hcnt.action = 'send_msg'
 
@@ -104,11 +102,12 @@ def choose_lvl(update: Update, context: CallbackContext) -> str:
     hcnt.keywords = {
         **hcnt.keywords, **theme.to_flashtext(), **test.to_flashtext()
     }
-    reply_markup = InlineKeyboardMarkup([[
-            InlineKeyboardButton('Начать', callback_data=f'run_test'),
-    ]])
+    reply_markup = InlineKeyboardMarkup([
+            [InlineKeyboardButton('Начать', callback_data=f'run_test')],
+            [InlineKeyboardButton('Отмена', callback_data=f'back')],
+    ])
     hcnt.role = 'show_user_choice'
     hcnt.action = 'edit_msg'
     context.user_data['hcnt'] = _do_message(hcnt, reply_markup=reply_markup)
-    return GO
+    return RUN_TEST
 

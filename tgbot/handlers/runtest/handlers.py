@@ -68,10 +68,19 @@ def show_question(update: Update, context: CallbackContext) -> str:
                
     u = User.get_user(update, context)        
     q = Question.objects.get(id=q_id)
-    u.gold -= q.difficulty_lvl
-    u.save()
-
     hcnt = context.user_data['hcnt']
+    if u.gold < q.difficulty_lvl:
+        hcnt.role = 'start_test_no_gold'
+        hcnt.action = 'edit_msg'
+        markup = InlineKeyboardMarkup([
+            [InlineKeyboardButton('Получить золото', callback_data='get_gold')],
+            [InlineKeyboardButton('Выйти', callback_data=f'back')]
+        ])
+        context.user_data['hcnt'] = _do_message(hcnt, reply_markup=markup)  
+        return None
+    else:
+        u.gold -= q.difficulty_lvl
+        u.save()
     remove_job_if_exists(f'{hcnt.user_id}-trackquestion', context)
     hcnt = _del_kb_message_if_exists(context, hcnt, q)
 
@@ -154,22 +163,18 @@ def receive_text_answer(update: Update, context: CallbackContext) -> str:
     hcnt =  context.user_data['hcnt']
     q = Question.objects.filter(id=hcnt.navigation.get('q_id', None)).first()
     answer_text = update.message.text
+    hcnt, markup, is_correct, re = _check_answer(context, answer_text, q)
 
-    if q and q.answer_type in [q.AnswerType.WORD, q.AnswerType.KB_BTN, q.AnswerType.SENTENSE]:
-        hcnt, markup, is_correct, re = _check_answer(context, answer_text, q)
-
-        if is_correct:
-            _set_delay_edit(context, hcnt.copy(), q.id)
-            hcnt = _del_kb_message_if_exists(context, hcnt, q)
-            hcnt.action = 'send_msg' 
-            context.user_data['hcnt'] = _do_message(hcnt, reply_markup=markup)
+    if is_correct:
+        _set_delay_edit(context, hcnt.copy(), q.id)
+        hcnt = _del_kb_message_if_exists(context, hcnt, q)
+        hcnt.action = 'send_msg' 
+        context.user_data['hcnt'] = _do_message(hcnt, reply_markup=markup)
            
-        else:
-            hcnt.action = 'edit_msg' 
-            context.user_data['hcnt'] = _do_message(hcnt, reply_markup=markup)
-        return re
     else:
-        return conf.CATCH_ANSWER
+        hcnt.action = 'edit_msg' 
+        context.user_data['hcnt'] = _do_message(hcnt, reply_markup=markup)
+    return re
 
 def receive_poll_answer(update: Update, context: CallbackContext) -> None:
     answer = update.poll_answer
@@ -243,7 +248,7 @@ def _check_answer(context: CallbackContext, answer_text: str, q: Question) -> st
         hcnt.role = 'answer_incorrect'
         time_left_dict = q.get_time_left(hcnt.navigation['start_time'])
         hcnt.keywords = {**hcnt.keywords, **time_left_dict}
-        re =  conf.CATCH_ANSWER
+        re =  None
 
     keybord = [[InlineKeyboardButton('Выйти', callback_data='back')]]
     if new_q_id:
@@ -269,12 +274,12 @@ def change_test_lvl(update: Update, context: CallbackContext) -> str:
     hcnt.action = 'edit_msg'; hcnt.role = 'choose_lvl'  
     hcnt = _do_message(hcnt, reply_markup=_get_lvl_markup(test_id))
     context.user_data['hcnt'] = hcnt
-    return conf.END
+    return conf.CHOOSER
 
 def change_test_theme(update: Update, context: CallbackContext) -> str:
     context.user_data['hcnt'] = _go_up(update, context)
     show_themes(update, context)
-    return conf.END
+    return conf.CHOOSER
 
 def test_no_gold(update: Update, context: CallbackContext) -> str:
     hcnt = _go_up(update, context)
@@ -296,7 +301,6 @@ def need_profile(update: Update, context: CallbackContext) -> str:
 
 def test_go_back(update: Update, context: CallbackContext) -> str:
     hcnt = _go_up(update, context)
-    hcnt.to_top = True
     hcnt.action = 'edit_msg'
     context.user_data['hcnt'] = hcnt
     done(update, context)
@@ -314,7 +318,6 @@ def finish_test(update: Update, context: CallbackContext) -> str:
     hcnt.keywords = {**hcnt.keywords, **res}
     hcnt = _do_message(hcnt)
    
-    hcnt.to_top = True
     hcnt.action = 'send_msg'
     context.user_data['hcnt'] = hcnt
     done(update, context)
