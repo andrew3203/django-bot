@@ -4,7 +4,7 @@ from django.views import View
 from django.http import JsonResponse
 
 from corporatum.settings import DEBUG
-from tgbot.dispatcher import process_telegram_event
+from tgbot.dispatcher import process_telegram_event, set_webhook
 
 logger = logging.getLogger(__name__)
 
@@ -21,8 +21,8 @@ class TelegramBotWebhookView(View):
             # Read Procfile for details
             # You can run all of these services via docker-compose.yml
 
-            # process_telegram_event.delay(json.loads(request.body))
-            process_telegram_event(json.loads(request.body))
+            process_telegram_event.delay(json.loads(request.body))
+            #process_telegram_event(json.loads(request.body))
 
         # TODO: there is a great trick to send action in webhook response
         # e.g. remove buttons, typing event

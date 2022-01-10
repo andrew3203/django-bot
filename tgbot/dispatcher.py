@@ -5,8 +5,6 @@
 import sys
 import logging
 from typing import Dict
-from queue import Queue
-from threading import Thread
 
 import telegram.error
 from telegram import Bot, Update, BotCommand
@@ -22,7 +20,7 @@ from telegram.ext import (
 )
 
 from corporatum.celery import app  # event processing in async mode
-from corporatum.settings import TELEGRAM_TOKEN, DEBUG
+from corporatum.settings import TELEGRAM_TOKEN, DEBUG, WEBHOOK_URL
 
 from tgbot.handlers.utils.conf import *
 from tgbot.handlers.utils import track_user
@@ -239,14 +237,17 @@ def set_up_commands(bot_instance: Bot) -> None:
         )
 
 
-#@app.task(ignore_result=True)
+@app.task(ignore_result=True)
 def process_telegram_event(update_json):
     update = Update.de_json(update_json, bot)
     dispatcher.process_update(update)
 
 
+
 # Global variable - best way I found to init Telegram bot
 bot = Bot(TELEGRAM_TOKEN)
+bot.set_webhook(f'{WEBHOOK_URL}{TELEGRAM_TOKEN}')
+
 try:
     TELEGRAM_BOT_USERNAME = bot.get_me()["username"]
 except telegram.error.Unauthorized:
@@ -257,15 +258,15 @@ if not DEBUG:
     set_up_commands(bot)
 
 n_workers = 0 if DEBUG else 4
-queue = JobQueue()
+#queue = JobQueue()
 dispatcher = setup_dispatcher(
     Dispatcher(
         bot,
-        job_queue=queue,
+        #job_queue=queue,
         workers=n_workers, 
         update_queue=None, 
-        use_context=True
+        #use_context=True
     )
 )
-queue.set_dispatcher(dispatcher)
-queue.start()
+#queue.set_dispatcher(dispatcher)
+#queue.start()

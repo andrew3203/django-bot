@@ -164,6 +164,8 @@ DEFAULT_AUTO_FIELD='django.db.models.AutoField'
 
 # -----> TELEGRAM
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+WEBHOOK_URL = 'https://www.corporatum.club/tgbot/webhook/'
+
 if TELEGRAM_TOKEN is None:
     logging.error(
         "Please provide TELEGRAM_TOKEN in .env file.\n"
