@@ -246,7 +246,7 @@ def process_telegram_event(update_json):
 
 # Global variable - best way I found to init Telegram bot
 bot = Bot(TELEGRAM_TOKEN)
-bot.set_webhook(f'{WEBHOOK_URL}{TELEGRAM_TOKEN}')
+bot.set_webhook(WEBHOOK_URL)
 
 try:
     TELEGRAM_BOT_USERNAME = bot.get_me()["username"]
@@ -264,10 +264,9 @@ dispatcher = setup_dispatcher(
         bot,
         #job_queue=queue,
         workers=n_workers, 
-        update_queue=None, 
+        update_queue=None,
         #use_context=True
     )
 )
-
 #queue.set_dispatcher(dispatcher)
 #queue.start()
