@@ -88,7 +88,7 @@ def _send_poll(
                 options=options,
                 is_anonymous=False,
                 type=Poll.REGULAR, 
-                explanation='Test exsplanation',
+                explanation='Используй силу друг мой',
                 allows_multiple_answers=True,
             )
         else:
@@ -98,7 +98,7 @@ def _send_poll(
                 options=options,
                 is_anonymous=False,
                 type=Poll.QUIZ, 
-                explanation='Test exsplanation',
+                explanation='Используй силу друг мой',
                 correct_option_id=correct_option_id
             )
      
