@@ -40,7 +40,7 @@ def start(update: Update, context: CallbackContext) -> str:
             hcnt.role = 'ask_subscribe'
             hcnt = _do_message(hcnt, reply_markup=reply_markup, disable_web_page_preview=True)
             name = f'{u.user_id}-checksubscribe'
-            context.job_queue.run_once(is_user_subscribed, 15, context=hcnt, name=name)
+            context.job_queue.run_once(is_user_subscribed, WAIT_FOR_SUBSCRIBE, context=hcnt, name=name)
             context.user_data['hcnt'] = hcnt
         else:
             hcnt.profile_status = u'Мой профиль'

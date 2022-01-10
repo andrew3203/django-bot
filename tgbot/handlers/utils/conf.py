@@ -8,7 +8,10 @@ ADD_FRIEND = 'add-by-user'
 
 
 # time then questions is avalible
-DELAY = 30
+DELAY = 50
+
+# time for waiting user subsxribe
+WAIT_FOR_SUBSCRIBE = 20
 
 END = ConversationHandler.END
 
