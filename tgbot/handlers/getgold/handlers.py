@@ -125,11 +125,11 @@ def successful_payment_callback(update: Update, context: CallbackContext) -> Non
     payment_plan_id = hcnt.navigation['plan_id']
     promocode_id = hcnt.navigation.get('promocode_id', None)
     user = do_payment(hcnt.user_id, payment_plan_id, promocode_id)
+    hcnt.keywords = user.to_flashtext()
     hcnt.navigation['promocode_id'] = None
     hcnt.action = 'send_msg'; hcnt.role = 'payment_sucsess'
     context.user_data['hcnt'] = _do_message(hcnt)
     hcnt.role = 'choose_todo'
-    hcnt.keywords = user.to_flashtext()
     send_selecting_lvl(update, context)
     return END
 

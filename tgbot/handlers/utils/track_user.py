@@ -53,10 +53,10 @@ def tack_chat_members(update: Update, context: CallbackContext) -> None:
         if u and not was_member and is_member:
             u.is_subscribed = True
             u.save()
-            if remove_job_if_exists(f'{u.user_id}-checksubscribe', context):  
-                context.user_data['hcnt'].role = 'choose_todo'
-                context.user_data['hcnt'].user_id = u.user_id
-                send_selecting_lvl(update, context)
+            remove_job_if_exists(f'{u.user_id}-checksubscribe', context)
+            context.user_data['hcnt'].role = 'choose_todo'
+            context.user_data['hcnt'].user_id = u.user_id
+            send_selecting_lvl(update, context)
             #update.effective_chat.send_message(f"{member_name} was added by {cause_name}. Welcome!")
             
         elif u and was_member and not is_member:
