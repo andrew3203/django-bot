@@ -1,5 +1,5 @@
 from telegram.ext import ConversationHandler
-
+import os
 
 
 # for deep linking
@@ -8,10 +8,10 @@ ADD_FRIEND = 'add-by-user'
 
 
 # time then questions is avalible
-DELAY = 50
+DELAY = os.getenv("TELEGRAM_MESSAGE_DELAY", default=120)
 
-# time for waiting user subsxribe
-WAIT_FOR_SUBSCRIBE = 20
+# time for waiting user subscribe
+WAIT_FOR_SUBSCRIBE = os.getenv("TELEGRAM_WAIT_FOR_SUBSCRIBE", default=20)
 
 END = ConversationHandler.END
 
