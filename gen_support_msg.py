@@ -19,7 +19,7 @@ def generate():
         ('choose_lvl', 'Выберите пожалуйста уровень сложности', 'user_email - Почта пользователя\r\nusername - Никнейм пользователя в Телеграм\r\nfirst_name - Имя пользователя\r\nlast_name - Фамилия пользователя\r\nuser_gold - Количество золотых монет у пользователя \r\ntheme_name - Название темы\r\ntest_name - Название теста'),
         ('choose_pay', 'Выберете вариант оплаты из доступных, first_name!\r\n\r\nplans', 'user_email - Почта пользователя\r\nusername - Никнейм пользователя в Телеграм\r\nfirst_name - Имя пользователя\r\nlast_name - Фамилия пользователя\r\nuser_gold - Количество золотых монет у пользователя \r\n\r\nplans - Список доступных вариантов оплаты'),
         ('choose_test_error', 'Ошибка в выборе теста, пожалуйста попробуйте еще раз', 'user_email - Почта пользователя\r\nusername - Никнейм пользователя в Телеграм\r\nfirst_name - Имя пользователя\r\nlast_name - Фамилия пользователя\r\nuser_gold - Количество золотых монет у пользователя \r\ntheme_name - Название темы'),
-        ('choose_todo', 'Добро пожаловать в главное меню first_name!\r\n\r\nУ вас на счете  <b> username</b> золотых', 'user_email - Почта пользователя\r\nusername - Никнейм пользователя в Телеграм\r\nfirst_name - Имя пользователя\r\nlast_name - Фамилия пользователя\r\nusername - Количество золотых монет у пользователя'),
+        ('choose_todo', 'Добро пожаловать в главное меню first_name!\r\n\r\nУ вас на счете  <b></b> золотых', 'user_email - Почта пользователя\r\nusername - Никнейм пользователя в Телеграм\r\nfirst_name - Имя пользователя\r\nlast_name - Фамилия пользователя\r\nusername - Количество золотых монет у пользователя\r\nuser_gold - Колличество золота у пользователя'),
         ('close_question', 'Вопрос: question_name', 'user_email - Почта пользователя\r\nusername - Никнейм пользователя в Телеграм\r\nfirst_name - Имя пользователя\r\nlast_name - Фамилия пользователя\r\nuser_gold - Количество золотых монет у пользователя \r\nquestion_name - Название вопроса\r\nquestion_text - Текст вопроса\r\ntime_to_question - Время для решения вопроса\r\nquestion_lvl - Сложность вопроса'),
         ('email_error', 'Вы не верно ввели почту, введите пожалуйста заново в формате \r\n\r\nexample@domain.path', 'username - Никнейм пользователя в Телеграм\r\nfirst_name - Имя пользователя\r\nlast_name - Фамилия пользователя\r\nuser_gold - Количество золотых монет у пользователя'),
         ('enter_email', 'Введите пожалуйста почту в формате\r\n\r\nexample@domain.path', 'username - Никнейм пользователя в Телеграм\r\nfirst_name - Имя пользователя\r\nlast_name - Фамилия пользователя\r\nuser_gold - Количество золотых монет у пользователя'),
@@ -48,7 +48,7 @@ def generate():
         o = SupportMessage.objects.create(
             text=m[1], 
             role=m[0], 
-            available_words=m[3],
+            available_words=m[2],
             is_active=True
         )
         o.save()
