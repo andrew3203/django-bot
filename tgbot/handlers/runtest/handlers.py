@@ -235,7 +235,7 @@ def _check_answer(context: CallbackContext, answer_text: str, q: Question) -> st
 
     is_correct, kw = q.save_and_check_answer(answer_text, user, hcnt.navigation['start_time'])
     new_q_id = Test.get_question_id(test_id=hcnt.navigation['test'], last_q_id=q.id)
-    hcnt.keywords = kw
+    hcnt.keywords =  {**hcnt.keywords, **kw}
 
     if is_correct:
         remove_job_if_exists(f'{hcnt.user_id}-trackquestion', context)
@@ -314,7 +314,8 @@ def finish_test(update: Update, context: CallbackContext) -> str:
     res = Test.get_results(hcnt.navigation['test'], hcnt.user_id)
     hcnt.keywords = {**hcnt.keywords, **res}
     hcnt = _do_message(hcnt)
-   
+    u = User.objects.get(user_id=hcnt.user_id)
+    hcnt.keywords = u.to_flashtext()
     hcnt.action = 'send_msg'
     context.user_data['hcnt'] = hcnt
     done(update, context)

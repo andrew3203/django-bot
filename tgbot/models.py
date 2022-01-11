@@ -67,8 +67,9 @@ class User(CreateUpdateTracker):
             str(self.gold): ['user_gold'],
         }
 
-    def add_gold(self, plan,):
+    def add_gold(self, plan):
         self.gold += plan.gold_amount
+        self.save()
 
     @property
     def invited_users(self) -> QuerySet[User]:
@@ -299,12 +300,20 @@ class Test(models.Model):
         for q_id in questions:
             ans = Answer.objects.filter(user__user_id=user_id, question__id=q_id).first()
             am = (am + 1) if ans.is_correct else am
-        return {
-            f'{am}': ['right_amount'],
-            f'{len(questions)}': ['questions_amount'],
-            f'{am / len(questions):.3f}': ['right_percent'],
-            f'{1 - am / len(questions):.3f}': ['wrong_percent']
-        }
+        if len(questions) > 0:
+            return {
+                f'{am}': ['right_amount'],
+                f'{len(questions)}': ['questions_amount'],
+                f'{100*(am / len(questions)):.2f} %': ['right_percent'],
+                f'{100*(1 - am / len(questions)):.2f} %': ['wrong_percent']
+            }
+        else:
+            return {
+                f'{0}': ['right_amount'],
+                f'{0}': ['questions_amount'],
+                f'{0:.2f} %': ['right_percent'],
+                f'{0:.2f} %': ['wrong_percent']
+            }
 
     @admin.display(description='Тема')
     def get_theme(self):
@@ -509,6 +518,8 @@ class Promocode(models.Model):
     def use_promocode(self) -> None:
         self.clics_left -= 1
         self.clics_amount += 1
+        self.save()
+        
 
 
 class Payment(models.Model):
@@ -599,11 +610,7 @@ def do_payment(u_id, payment_plan_id, promocode_id):
         promocode=promocode,
         plan=plan
     ).save()
-    if promocode:
-        promocode.use_promocode()
-
+    if promocode: promocode.use_promocode()
     user.add_gold(plan)
-    user.save()
     return user
-   
     

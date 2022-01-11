@@ -1,6 +1,7 @@
 from telegram import (
-    Update, ParseMode,
-    InlineKeyboardButton, InlineKeyboardMarkup,
+    Update,
+    InlineKeyboardButton, 
+    InlineKeyboardMarkup,
 )
 from telegram.ext import CallbackContext
 from telegram.utils import helpers
@@ -10,7 +11,7 @@ from tgbot.handlers.utils.track_user import is_user_subscribed
 
 from tgbot.handlers.utils.conf import *
 
-from tgbot.models import User, SupportMessage
+from tgbot.models import User
 from utils.models import HelpContext
 
     
@@ -28,8 +29,10 @@ def start(update: Update, context: CallbackContext) -> str:
         navigation=dict()
     )
     if payload == FROM_MY_CHANEL:
-        if not created: hcnt.profile_status = u'Мой профиль'
-        u.deep_link = payload
+        if not created: 
+            hcnt.profile_status = u'Мой профиль'
+        else:
+            u.deep_link = payload
         send_selecting_lvl(update, context)
     else:
         if created:
@@ -79,6 +82,7 @@ def stop(update: Update, context: CallbackContext) -> str:
 
 def add_friend(update: Update, context: CallbackContext) -> str:
     bot = context.bot
+    update.callback_query.answer('Готово')
     u = User.get_user(update, context)
     if u.is_admin:
         rearg = f'{FROM_MY_CHANEL}'
@@ -88,8 +92,9 @@ def add_friend(update: Update, context: CallbackContext) -> str:
         role = 'add_users_by_user'
     hcnt = context.user_data['hcnt']
     hcnt.role = role
-    hcnt.action = 'edit_msg'
-    context.bot.send_message(
+    hcnt.action = 'send_msg'
+    context.bot.edit_message_text(
+        message_id=hcnt.message_id,
         chat_id= hcnt.user_id,
         text='Перешлите сообщение ниже другу чтобы посоветовать ему бота!'
     )

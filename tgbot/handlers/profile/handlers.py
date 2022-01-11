@@ -65,7 +65,7 @@ def save_email(update: Update, context: CallbackContext) -> str:
         if user.last_name:
             user.is_active = True
         user.save()
-        hcnt.keywords = {**hcnt.keywords, **user.to_flashtext()}
+        hcnt.keywords = user.to_flashtext()
         hcnt.role = 'catch_data'
         context.user_data['hcnt'] = _do_message(hcnt)
         return ask_input(update, context)
@@ -91,7 +91,7 @@ def save_name(update: Update, context: CallbackContext) -> str:
         if user.email:
             user.is_active = True
         user.save()
-        hcnt.keywords = {**hcnt.keywords, **user.to_flashtext()}
+        hcnt.keywords = user.to_flashtext()
         hcnt.role = 'catch_data'
         context.user_data['hcnt'] = _do_message(hcnt)
         return ask_input(update, context)
