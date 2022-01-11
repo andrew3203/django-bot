@@ -243,11 +243,16 @@ def process_telegram_event(update_json):
     dispatcher.process_update(update)
 
 
+@app.task(ignore_result=True)
+def process_telegram_jobqueue():
+    queue.set_dispatcher(dispatcher)
+    queue.start()
+
+
 
 # Global variable - best way I found to init Telegram bot
 bot = Bot(TELEGRAM_TOKEN)
 bot.set_webhook(WEBHOOK_URL)
-
 try:
     TELEGRAM_BOT_USERNAME = bot.get_me()["username"]
 except telegram.error.Unauthorized:
@@ -268,5 +273,4 @@ dispatcher = setup_dispatcher(
         use_context=True
     )
 )
-queue.set_dispatcher(dispatcher)
-queue.start()
+process_telegram_jobqueue.delay()
