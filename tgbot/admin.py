@@ -119,7 +119,7 @@ class QuestionAdmin(admin.ModelAdmin):
         ('Основное', {
             'fields': (
                 ("short_name", "difficulty_lvl"),
-                ("timer", "file"),
+                ("timer", "file", 'file_tg_id'),
                 ('text')
             ),
         }),
@@ -131,7 +131,7 @@ class QuestionAdmin(admin.ModelAdmin):
             ),
         }),
     )
-    readonly_fields = ('get_test', 'get_theme', "id")
+    readonly_fields = ('get_test', 'get_theme', "id", 'file_tg_id')
 
 
 @admin.register(Test)
@@ -297,13 +297,13 @@ class SupportMessageAdmin(admin.ModelAdmin):
         ('Информация о сообщении', {
             'fields': (
                 ("role", 'is_active'),
-                ('file'),
+                ('file', 'file_tg_id'),
                 ('available_words',),
                 ('text')
             ),
         }),
     )
-    readonly_fields = ('available_words',)
+    readonly_fields = ('available_words', 'file_tg_id')
     
     
 admin.site.site_title = 'Управление курсами CORPORATUM'

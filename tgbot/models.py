@@ -116,6 +116,7 @@ class Question(models.Model):
     text = models.TextField(_('Текст вопроса'), max_length=1200)
     timer = models.TimeField(_('Время на решение'), blank=True)
     file = models.FileField(_('Файл'), upload_to='question/', blank=True)
+    file_tg_id = models.CharField(_(u'Id файла в телеграм'), max_length=100, blank=True, default=None, null=True)
     answer_variants = models.TextField(_('Варианты ответа'), max_length=500, blank=True)
     right_answers = models.TextField(_('Правильные варианты'), max_length=1000, blank=True)
 
@@ -163,6 +164,9 @@ class Question(models.Model):
             self.timer.strftime("%H:%M:%S"): ['time_to_question'],
             self.get_difficulty_lvl_name(): ['question_lvl'],
         }
+
+    def get_file(self):
+        return self.file_tg_id, self.file.path, self.id
 
     def get_time_left(self, start_time):
         timer = timedelta(hours=self.timer.hour, minutes=self.timer.minute, seconds=self.timer.second)
@@ -568,6 +572,7 @@ class SupportMessage(models.Model):
     text = models.TextField(_(u'Текст сообщения'), max_length=300, blank=True)
     role = models.CharField(_(u'Роль'), max_length=20)
     file = models.FileField(_(u'Файл'), upload_to='message/', blank=True)
+    file_tg_id = models.CharField(_(u'Id файла в телеграм'), max_length=100, blank=True, default=None, null=True)
     is_active= models.BooleanField(_(u'Использовать в качестве ответа'), default=False)
     available_words = models.TextField(_(u'Доступные сокращения'), blank=True)
     class Meta:
@@ -584,10 +589,9 @@ class SupportMessage(models.Model):
         N = len(re) - 1
         msq = re[random.randint(0, N)]  if N > 0 else re[0]
 
-        if cnt.keywords:
-            keyword_processor = KeywordProcessor()
-            keyword_processor.add_keywords_from_dict(cnt.keywords)
-            msq.text = keyword_processor.replace_keywords(msq.text)
+        keyword_processor = KeywordProcessor()
+        keyword_processor.add_keywords_from_dict(cnt.keywords)
+        msq.text = keyword_processor.replace_keywords(msq.text)
         return msq
 
     @staticmethod

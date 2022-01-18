@@ -85,6 +85,7 @@ def show_question(update: Update, context: CallbackContext) -> str:
     hcnt = _del_kb_message_if_exists(context, hcnt, q)
 
     hcnt.keywords = {**u.to_flashtext(), **q.to_flashtext()}
+    hcnt.question_file = q.get_file()
     hcnt.role = 'show_question'
     hcnt.action = 'edit_msg'
     hcnt.navigation['q_id'] = q_id

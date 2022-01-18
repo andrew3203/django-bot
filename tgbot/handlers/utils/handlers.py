@@ -15,7 +15,7 @@ from telegram.ext import CallbackContext
 from django.db.models import QuerySet
 
 from corporatum.settings import TELEGRAM_TOKEN
-from tgbot.models import User, SupportMessage
+from tgbot.models import Question, User, SupportMessage
 from utils.models import HelpContext
 
 
@@ -103,7 +103,6 @@ def _send_poll(
             )
      
     except telegram.error.Unauthorized:
-        print(f"Can't send message to {user_id}. Reason: Bot was stopped.")
         User.objects.filter(user_id=user_id).update(is_blocked_bot=True)
         payload = {}
     else:
@@ -120,7 +119,43 @@ def _send_poll(
         User.objects.filter(user_id=user_id).update(is_blocked_bot=False)
     return payload
 
+def sent_file(user_id: int, msg: SupportMessage, bot: telegram.Bot):        
 
+    def _sent_to_user(file_id, file_path):
+        if file_id or file_path:
+            doc =  file_id if file_id else open(file_path, 'rb')
+            ext = file_path.split('.')[-1]
+            if ext in ['png', 'jpeg', 'PNG', 'JPEG']:
+                bot.send_chat_action(chat_id=user_id, action=telegram.ChatAction.UPLOAD_PHOTO, timeout=1)
+                m = bot.send_photo(chat_id=user_id, photo=doc)
+                new_file_id = m.photo.file_id
+            elif ext in ['mp4', 'MP4', 'mov', 'MOV', 'avi', 'AVI']:
+                bot.send_chat_action(chat_id=user_id, action=telegram.ChatAction.UPLOAD_VIDEO, timeout=1)
+                m = bot.send_video(chat_id=user_id, video=doc)
+                new_file_id = m.video.file_id
+            elif ext in ['mp3', 'MP3', 'aac', 'AAC']:
+                bot.send_chat_action(chat_id=user_id, action=telegram.ChatAction.UPLOAD_AUDIO, timeout=1)
+                m = bot.send_audio(chat_id=user_id, audio=doc)
+                new_file_id = m.audio.file_id
+            elif ext in ['svg']:
+                bot.send_chat_action(chat_id=user_id, action=telegram.ChatAction.CHOOSE_STICKER, timeout=1)
+                m = bot.send_sticker(chat_id=user_id, sticker=doc)
+                new_file_id = m.sticker.file_id
+            else:
+                bot.send_chat_action(chat_id=user_id, action=telegram.ChatAction.UPLOAD_DOCUMENT, timeout=1)
+                m = bot.send_document(chat_id=user_id, document=doc)
+                new_file_id = m.document.file_id
+            return new_file_id if not file_id and file_path else None
+        return None
+
+    new_file_id = _sent_to_user(msg.file_tg_id, msg.file.path)
+    print(f'M:: new file id is {new_file_id}\nOld id is {msg.file_tg_id}\nFile path {msg.file.path}')
+    if new_file_id:
+        SupportMessage.objects.filter(id=msg.id).update(tg_file_id=new_file_id)
+    new_file_id = _sent_to_user(msg.question_file[0], msg.question_file[1])
+    print(f'Q:: new file id is {new_file_id}\nOld id is {msg.question_file[0]}\nFile path {msg.question_file[1]}')
+    if new_file_id:
+        Question.objects.filter(id=msg.question_file[2]).update(tg_file_id=new_file_id)
 
 
 def _do_message(
@@ -140,8 +175,11 @@ def _do_message(
     msg = SupportMessage.get_message(help_context)
 
     try:
+        sent_file(user_id, msg, bot)
+
         if action == 'send_msg':
-             m = bot.send_message(
+            bot.send_chat_action(chat_id=user_id, action=telegram.ChatAction.TYPING, timeout=1)
+            m = bot.send_message(
                 chat_id=user_id,
                 text=msg.text,
                 parse_mode=parse_mode,
@@ -165,7 +203,6 @@ def _do_message(
                 message_id=message_id,
             )
     except telegram.error.Unauthorized:
-        print(f"Can't send message to {user_id}. Reason: Bot was stopped.")
         User.objects.filter(user_id=user_id).update(is_blocked_bot=True)
         help_context.message_id = None
     else:

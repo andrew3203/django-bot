@@ -273,4 +273,4 @@ dispatcher = setup_dispatcher(
         use_context=True
     )
 )
-process_telegram_jobqueue.delay()
+# process_telegram_jobqueue.delay()

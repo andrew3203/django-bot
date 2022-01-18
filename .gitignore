@@ -136,3 +136,7 @@ dmypy.json
 
 #Docker
 .Dockerfile.swp
+
+#media
+media/
+media
