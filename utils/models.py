@@ -38,7 +38,7 @@ class HelpContext(object):
         navigation: dict = None, 
         profile_status: str = None,
         prev_answer_type: str = None,
-        question_file: tuple = None
+        question_file: tuple = (None, None, None)
     ) -> None:
         super().__init__()
         

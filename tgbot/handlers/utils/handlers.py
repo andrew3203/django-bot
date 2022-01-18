@@ -119,43 +119,42 @@ def _send_poll(
         User.objects.filter(user_id=user_id).update(is_blocked_bot=False)
     return payload
 
-def sent_file(user_id: int, msg: SupportMessage, bot: telegram.Bot):        
+def sent_file(user_id: int, msg: SupportMessage, hcnt: HelpContext, bot: telegram.Bot):        
 
-    def _sent_to_user(file_id, file_path):
-        if file_id or file_path:
+    def _sent_to_user(file_id, file):
+
+        if file_id or file:
+            file_path = file.path
             doc =  file_id if file_id else open(file_path, 'rb')
             ext = file_path.split('.')[-1]
-            if ext in ['png', 'jpeg', 'PNG', 'JPEG']:
+            if ext in ['jpeg', 'JPEG', 'jpg', 'JPG']:
                 bot.send_chat_action(chat_id=user_id, action=telegram.ChatAction.UPLOAD_PHOTO, timeout=1)
-                m = bot.send_photo(chat_id=user_id, photo=doc)
-                new_file_id = m.photo.file_id
+                m = bot.send_photo(user_id, doc)
+                new_file_id = m.photo[-1].file_id
             elif ext in ['mp4', 'MP4', 'mov', 'MOV', 'avi', 'AVI']:
                 bot.send_chat_action(chat_id=user_id, action=telegram.ChatAction.UPLOAD_VIDEO, timeout=1)
-                m = bot.send_video(chat_id=user_id, video=doc)
+                m = bot.send_video(user_id, doc)
                 new_file_id = m.video.file_id
-            elif ext in ['mp3', 'MP3', 'aac', 'AAC']:
+            elif ext in ['mp3', 'MP3',  'm4a', 'aac', 'AAC']:
                 bot.send_chat_action(chat_id=user_id, action=telegram.ChatAction.UPLOAD_AUDIO, timeout=1)
-                m = bot.send_audio(chat_id=user_id, audio=doc)
+                m = bot.send_audio(user_id, doc)
                 new_file_id = m.audio.file_id
-            elif ext in ['svg']:
+            elif ext in ['png', 'PNG']:
                 bot.send_chat_action(chat_id=user_id, action=telegram.ChatAction.CHOOSE_STICKER, timeout=1)
-                m = bot.send_sticker(chat_id=user_id, sticker=doc)
+                m = bot.send_sticker(user_id, doc)
                 new_file_id = m.sticker.file_id
             else:
                 bot.send_chat_action(chat_id=user_id, action=telegram.ChatAction.UPLOAD_DOCUMENT, timeout=1)
-                m = bot.send_document(chat_id=user_id, document=doc)
+                m = bot.send_document(user_id, doc)
                 new_file_id = m.document.file_id
             return new_file_id if not file_id and file_path else None
         return None
 
-    new_file_id = _sent_to_user(msg.file_tg_id, msg.file.path)
-    print(f'M:: new file id is {new_file_id}\nOld id is {msg.file_tg_id}\nFile path {msg.file.path}')
-    if new_file_id:
-        SupportMessage.objects.filter(id=msg.id).update(tg_file_id=new_file_id)
-    new_file_id = _sent_to_user(msg.question_file[0], msg.question_file[1])
-    print(f'Q:: new file id is {new_file_id}\nOld id is {msg.question_file[0]}\nFile path {msg.question_file[1]}')
-    if new_file_id:
-        Question.objects.filter(id=msg.question_file[2]).update(tg_file_id=new_file_id)
+    new_file_id = _sent_to_user(msg.file_tg_id, msg.file)
+    if new_file_id: SupportMessage.objects.filter(id=msg.id).update(file_tg_id=new_file_id)
+
+    new_file_id = _sent_to_user(hcnt.question_file[0], hcnt.question_file[1])
+    if new_file_id: Question.objects.filter(id=hcnt.question_file[2]).update(file_tg_id=new_file_id)
 
 
 def _do_message(
@@ -175,7 +174,7 @@ def _do_message(
     msg = SupportMessage.get_message(help_context)
 
     try:
-        sent_file(user_id, msg, bot)
+        sent_file(user_id, msg, help_context, bot)
 
         if action == 'send_msg':
             bot.send_chat_action(chat_id=user_id, action=telegram.ChatAction.TYPING, timeout=1)

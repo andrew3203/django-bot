@@ -12,9 +12,9 @@ from django.contrib import admin
 from django.db.models import QuerySet
 from django.utils.translation import activate, ugettext_lazy as _
 from django.utils.timezone import now
-from django.db.models.signals import post_save, post_delete
+from django_cleanup.signals import cleanup_pre_delete
 from django.dispatch import receiver
-import logging
+import os
 
 from telegram import Update
 
@@ -166,7 +166,7 @@ class Question(models.Model):
         }
 
     def get_file(self):
-        return self.file_tg_id, self.file.path, self.id
+        return self.file_tg_id, self.file, self.id
 
     def get_time_left(self, start_time):
         timer = timedelta(hours=self.timer.hour, minutes=self.timer.minute, seconds=self.timer.second)
@@ -589,9 +589,10 @@ class SupportMessage(models.Model):
         N = len(re) - 1
         msq = re[random.randint(0, N)]  if N > 0 else re[0]
 
-        keyword_processor = KeywordProcessor()
-        keyword_processor.add_keywords_from_dict(cnt.keywords)
-        msq.text = keyword_processor.replace_keywords(msq.text)
+        if cnt.keywords:
+            keyword_processor = KeywordProcessor()
+            keyword_processor.add_keywords_from_dict(cnt.keywords)
+            msq.text = keyword_processor.replace_keywords(msq.text)
         return msq
 
     @staticmethod
@@ -600,7 +601,6 @@ class SupportMessage(models.Model):
         keyword_processor = KeywordProcessor()
         keyword_processor.add_keywords_from_dict(u.to_flashtext())
         return keyword_processor.replace_keywords(text)
-
 
 
 
@@ -617,4 +617,32 @@ def do_payment(u_id, payment_plan_id, promocode_id):
     if promocode: promocode.use_promocode()
     user.add_gold(plan)
     return user
-    
+
+
+@receiver(models.signals.pre_save, sender=SupportMessage)
+def auto_delete_file_on_change(sender, instance, **kwargs):
+    try:
+        old_file = SupportMessage.objects.get(pk=instance.pk).file
+    except Exception as e:
+        print(e)
+        return False
+
+    new_file = instance.file
+    if instance.file_tg_id is not None and old_file != new_file:
+        instance.file_tg_id = None
+        instance.save()
+
+
+@receiver(models.signals.pre_save, sender=Question)
+def auto_delete_file_on_change(sender, instance, **kwargs):
+    try:
+        old_file = Question.objects.get(pk=instance.pk).file
+    except Exception as e:
+        print(e)
+        return False
+
+    new_file = instance.file
+    if instance.file_tg_id is not None and old_file != new_file:
+        instance.file_tg_id = None
+        instance.save()
+
