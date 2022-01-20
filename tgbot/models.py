@@ -116,7 +116,7 @@ class Question(models.Model):
     text = models.TextField(_('Текст вопроса'), max_length=1200)
     timer = models.TimeField(_('Время на решение'), blank=True)
     file = models.FileField(_('Файл'), upload_to='question/', blank=True)
-    file_tg_id = models.CharField(_(u'Id файла в телеграм'), max_length=100, blank=True, default=None, null=True)
+    file_tg_id = models.CharField(_(u'Id файла в телеграм'), max_length=100, null=True)
     answer_variants = models.TextField(_('Варианты ответа'), max_length=500, blank=True)
     right_answers = models.TextField(_('Правильные варианты'), max_length=1000, blank=True)
 
@@ -572,7 +572,7 @@ class SupportMessage(models.Model):
     text = models.TextField(_(u'Текст сообщения'), max_length=300, blank=True)
     role = models.CharField(_(u'Роль'), max_length=20)
     file = models.FileField(_(u'Файл'), upload_to='message/', blank=True)
-    file_tg_id = models.CharField(_(u'Id файла в телеграм'), max_length=100, blank=True, default=None, null=True)
+    file_tg_id = models.CharField(_(u'Id файла в телеграм'), max_length=100, null=True)
     is_active= models.BooleanField(_(u'Использовать в качестве ответа'), default=False)
     available_words = models.TextField(_(u'Доступные сокращения'), blank=True)
     class Meta:
