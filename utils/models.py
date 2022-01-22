@@ -59,7 +59,7 @@ class HelpContext(object):
         self.prev_answer_type = prev_answer_type
         self.__dict__.update({'prev_answer_type': prev_answer_type})
         self.question = question
-        self.__dict__.update({'question_file': question})
+        self.__dict__.update({'question': question})
 
         
 
