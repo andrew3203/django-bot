@@ -9,7 +9,10 @@ django-cleanup==5.2.0
 django-timezone-field 
 django-cors-headers
 django-debug-toolbar
+
+# files
 whitenoise
+cloudinary==1.28.1
 
 # Django 3.0 async requirements
 gunicorn

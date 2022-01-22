@@ -64,7 +64,7 @@ def show_file_id(update: Update, context) -> None:
         file_id = _get_file_id(update_json["message"])
         message_id = update_json["message"]["message_id"]
         update.message.reply_text(
-            text=f"`{file_id}`",
+            text=f"Скопируйте ID и вставьте в соответствующее поле\n`{file_id}`",
             parse_mode=telegram.ParseMode.MARKDOWN,
             reply_to_message_id=message_id
         )
