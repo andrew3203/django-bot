@@ -189,7 +189,8 @@ def setup_dispatcher(dp):
     dp.add_handler(PollAnswerHandler(runtest_handlers.receive_poll_answer))
 
     # files
-    dp.add_handler(MessageHandler(Filters.animation, files.show_file_id))
+    #dp.add_handler(MessageHandler(Filters.animation, files.show_file_id))
+    dp.add_handler(MessageHandler(Filters.sticker, files.show_file_id))
     
     # handling errors
     dp.add_error_handler(error.send_stacktrace_to_tg_chat)

@@ -5,6 +5,10 @@ import sys
 import dj_database_url
 import dotenv
 
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
+
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -48,6 +52,9 @@ INSTALLED_APPS = [
     'django_celery_beat',
     'debug_toolbar',
     'django_cleanup.apps.CleanupConfig',
+
+    # cloud images
+    'cloudinary',
 
     # local apps
     'tgbot.apps.TgbotConfig',
@@ -146,8 +153,15 @@ PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(PROJECT_ROOT, 'static')
 
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(PROJECT_ROOT, 'media')
+# -----> Media files with Cloudinary
+# MEDIA_URL = '/media/'
+# MEDIA_ROOT = os.path.join(PROJECT_ROOT, 'media')
+cloudinary.config( 
+  cloud_name = os.getenv('CLOUD_NAME'),
+  api_key = os.getenv('API_KEY'),
+  api_secret =  os.getenv('API_SECRET'),
+  secure = True
+)
 
 
 # -----> CELERY

@@ -38,7 +38,7 @@ class HelpContext(object):
         navigation: dict = None, 
         profile_status: str = None,
         prev_answer_type: str = None,
-        question_file: tuple = (None, None, None)
+        question: dict = {},
     ) -> None:
         super().__init__()
         
@@ -58,8 +58,8 @@ class HelpContext(object):
         self.__dict__.update({'role': role})
         self.prev_answer_type = prev_answer_type
         self.__dict__.update({'prev_answer_type': prev_answer_type})
-        self.question_file = question_file
-        self.__dict__.update({'question_file': question_file})
+        self.question = question
+        self.__dict__.update({'question_file': question})
 
         
 

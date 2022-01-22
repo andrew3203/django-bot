@@ -1,4 +1,6 @@
 from __future__ import annotations
+from distutils.command import upload
+from email.policy import default
 from typing import Union, Optional, Tuple
 from django.db.models.deletion import CASCADE
 from flashtext import KeywordProcessor
@@ -12,7 +14,7 @@ from django.contrib import admin
 from django.db.models import QuerySet
 from django.utils.translation import activate, ugettext_lazy as _
 from django.utils.timezone import now
-from django_cleanup.signals import cleanup_pre_delete
+from cloudinary.models import CloudinaryField
 from django.dispatch import receiver
 import os
 
@@ -31,7 +33,8 @@ def _normalize_text(text):
 
 
 class User(CreateUpdateTracker):
-    user_id = models.IntegerField(_('Chat id'), primary_key=True)  # telegram_id
+    user_id = models.IntegerField(
+        _('Chat id'), primary_key=True)  # telegram_id
     email = models.EmailField(_('Почта'), unique=True, blank=True, null=True)
     username = models.CharField(_('Никнейн'), max_length=32, **nb)
     first_name = models.CharField(_('Имя'), max_length=256, default='Гость')
@@ -48,7 +51,7 @@ class User(CreateUpdateTracker):
     is_active = models.BooleanField(_('Прошел регистрацию'), default=False)
     is_admin = models.BooleanField(_('Администратор'), default=False)
     is_moderator = models.BooleanField(_('Модератор'), default=False)
-    
+
     def __str__(self):
         return f'@{self.username}' if self.username is not None else f'{self.username}'
 
@@ -85,13 +88,15 @@ class User(CreateUpdateTracker):
     def get_user_and_created(cls, update: Update, context) -> Tuple[User, bool]:
         """ python-telegram-bot's Update, Context --> User instance """
         data = extract_user_data_from_update(update)
-        u, created = cls.objects.update_or_create(user_id=data["user_id"], defaults=data)
+        u, created = cls.objects.update_or_create(
+            user_id=data["user_id"], defaults=data)
 
         if created:
             # Save deep_link to User model
             if context is not None and context.args is not None and len(context.args) > 0:
                 payload = context.args[0]
-                if str(payload).strip() != str(data["user_id"]).strip():  # you can't invite yourself
+                # you can't invite yourself
+                if str(payload).strip() != str(data["user_id"]).strip():
                     u.deep_link = payload
                     u.save()
 
@@ -112,13 +117,29 @@ class User(CreateUpdateTracker):
 
 
 class Question(models.Model):
-    short_name = models.CharField(_('Название'),max_length=30, unique=True)
+    short_name = models.CharField(_('Название'), max_length=30, unique=True)
     text = models.TextField(_('Текст вопроса'), max_length=1200)
     timer = models.TimeField(_('Время на решение'), blank=True)
-    file = models.FileField(_('Файл'), upload_to='question/', blank=True)
-    file_tg_id = models.CharField(_(u'Id файла в телеграм'), max_length=100, null=True)
-    answer_variants = models.TextField(_('Варианты ответа'), max_length=500, blank=True)
-    right_answers = models.TextField(_('Правильные варианты'), max_length=1000, blank=True)
+    file = CloudinaryField(
+        _('Фото (png, jpeg) / Видео (mp4)'),
+        help_text='Чтобы добавить файл/аудио/большое видео используйте ссылку в сообщении',
+        blank=True,
+        null=True,
+        default=None,
+        overwrite=True,
+        folder='corporatum/questions',
+    )
+    sticker = models.CharField(
+        _(u'Id стикера в телеграм'),
+        help_text='Отправьте стикер боту, чтобы узнать его ID, затем вставьте его сюда без лишних символов', 
+        max_length=250, blank=True
+    )
+    file_tg_id = models.CharField(
+        _('Id файла в телеграм'), max_length=100, null=True)
+    answer_variants = models.TextField(
+        _('Варианты ответа'), max_length=500, blank=True)
+    right_answers = models.TextField(
+        _('Правильные варианты'), max_length=1000, blank=True)
 
     class AnswerType(models.TextChoices):
         WORD = 'Word', _('Слово')
@@ -142,7 +163,7 @@ class Question(models.Model):
         default=AnswerType.FLY_BTN
     )
     difficulty_lvl = models.IntegerField(
-        _('Уровень сложности'), 
+        _('Уровень сложности'),
         choices=DifficultyLvl.choices,
         default=DifficultyLvl.FIRST
     )
@@ -166,16 +187,22 @@ class Question(models.Model):
         }
 
     def get_file(self):
-        return self.file_tg_id, self.file, self.id
+        return {
+            'file_tg_id': self.file_tg_id, 
+            'file': self.file,
+            'sticker': self.sticker,
+            'q_id': self.id,
+        }
 
     def get_time_left(self, start_time):
-        timer = timedelta(hours=self.timer.hour, minutes=self.timer.minute, seconds=self.timer.second)
+        timer = timedelta(hours=self.timer.hour,
+                          minutes=self.timer.minute, seconds=self.timer.second)
         end_time = start_time + timer
         time_left = (datetime.min + (end_time - now())).time()
         return {time_left.strftime("%H:%M:%S"): ['time_left']}
 
     def get_ans_variants(self):
-        return [o for o in self.answer_variants.split(';')  if o != '']
+        return [o for o in self.answer_variants.split(';') if o != '']
 
     def correct_option_id(self):
         return 0
@@ -225,7 +252,7 @@ class Question(models.Model):
         for q in Question.objects.filter(test__id=test_id):
             s.add((q.difficulty_lvl, q.get_difficulty_lvl_name()))
         return sorted(s, key=lambda x: x[0])
-    
+
     @admin.display(description='Тест')
     def get_test(self):
         obj = Test.objects.filter(questions=self).first()
@@ -236,7 +263,7 @@ class Question(models.Model):
         obj = Test.objects.filter(questions=self).first()
         re = Theme.objects.filter(tests=obj).first()
         return str(re)
-    
+
 
 class Test(models.Model):
     short_name = models.CharField(_('Название'), max_length=50)
@@ -245,7 +272,7 @@ class Test(models.Model):
         related_name=_('tests'),
         related_query_name=_('test'),
         verbose_name=_(u'Вопросы'),
-        help_text= _(u'Выпросы этого теста'),
+        help_text=_(u'Выпросы этого теста'),
         blank=True
     )
     is_visible = models.BooleanField(_('Виден'), default=False)
@@ -264,33 +291,37 @@ class Test(models.Model):
         }
 
     def get_difficulty_lvl(self):
-         ans = [q.difficulty_lvl for q in Question.objects.filter(tests=self)]
-         return math.mean(ans)
+        ans = [q.difficulty_lvl for q in Question.objects.filter(tests=self)]
+        return math.mean(ans)
 
     @staticmethod
     def get_test_id():
         re = [o.id for o in Test.objects.filter(questions__difficulty_lvl=0)]
         N = len(re) - 1
-        return re[random.randint(0, N)]  if N > 0 else re[0]
+        return re[random.randint(0, N)] if N > 0 else re[0]
 
     @staticmethod
     def tests_of_theme(theme_id):
         d = {}
         for t in Test.objects.filter(theme__id=theme_id, is_visible=True):
-                d[t.short_name] = t.id
+            d[t.short_name] = t.id
         return d
 
     @staticmethod
     def get_question_id(test_id, last_q_id=None) -> Optional[bool]:
-        questions = list(Question.objects.filter(test__id=test_id).values_list('id', flat=True))
-        num = (1 + questions.index(int(last_q_id))) if last_q_id is not None else 0
+        questions = list(Question.objects.filter(
+            test__id=test_id).values_list('id', flat=True))
+        num = (1 + questions.index(int(last_q_id))
+               ) if last_q_id is not None else 0
         questions += [None]
         return questions[num] if len(questions) > num else None
 
     @staticmethod
-    def get_new_question_id(user_id, test_id): # показать следующий не сделанный вопрос
+    # показать следующий не сделанный вопрос
+    def get_new_question_id(user_id, test_id):
         questions = Question.objects.filter(test__id=test_id)
-        questions_closed = Question.objects.filter(answer__is_correct=True, answer__user__user_id=user_id)
+        questions_closed = Question.objects.filter(
+            answer__is_correct=True, answer__user__user_id=user_id)
 
         k1 = list(map(lambda o: (o.id, o.short_name), questions))
         k2 = list(map(lambda o: (o.id, o.short_name), questions_closed))
@@ -299,10 +330,12 @@ class Test(models.Model):
 
     @staticmethod
     def get_results(test_id, user_id):
-        questions = list(Question.objects.filter(test__id=test_id).values_list('id', flat=True))
+        questions = list(Question.objects.filter(
+            test__id=test_id).values_list('id', flat=True))
         am = 0
         for q_id in questions:
-            ans = Answer.objects.filter(user__user_id=user_id, question__id=q_id).first()
+            ans = Answer.objects.filter(
+                user__user_id=user_id, question__id=q_id).first()
             am = (am + 1) if ans.is_correct else am
         if len(questions) > 0:
             return {
@@ -331,7 +364,7 @@ class Test(models.Model):
 class Theme(models.Model):
     short_name = models.CharField(_('Название'), max_length=50, blank=True)
     is_visible = models.BooleanField(_('Видна'), default=False)
-    
+
     tests = models.ManyToManyField(
         Test,
         related_name=_('themes'),
@@ -345,7 +378,7 @@ class Theme(models.Model):
         verbose_name = _('Тема')
         verbose_name_plural = _('Темы')
         ordering = ['short_name']
-    
+
     def __str__(self) -> str:
         return f'{self.short_name}'
 
@@ -365,7 +398,7 @@ class Answer(models.Model):
         related_name=_('answers'),
         related_query_name=_('answer'),
         verbose_name=_(u'Вопрос'),
-        help_text= _(u'Вопрос этого ответа'),
+        help_text=_(u'Вопрос этого ответа'),
         on_delete=models.CASCADE, blank=True, null=True
     )
     user = models.ForeignKey(
@@ -373,13 +406,15 @@ class Answer(models.Model):
         related_name=_(u'answer'),
         related_query_name=_('answer'),
         verbose_name=_(u'Автор ответа'),
-        help_text= _(u'Автор этого ответа'),
+        help_text=_(u'Автор этого ответа'),
         on_delete=models.CASCADE, blank=True, null=True
     )
     date_created = models.DateTimeField(_('Дата ответа'), auto_now_add=True)
     time_to_solve = models.TimeField(_('Время, потраченное на решение'))
-    answer_text = models.TextField(_('Текст ответа'), max_length=500, blank=True)
-    is_correct = models.BooleanField(_('Правильность'), blank=True, default=False)
+    answer_text = models.TextField(
+        _('Текст ответа'), max_length=500, blank=True)
+    is_correct = models.BooleanField(
+        _('Правильность'), blank=True, default=False)
 
     class Meta:
         verbose_name = _('Ответ')
@@ -391,7 +426,7 @@ class Answer(models.Model):
 
     def to_flashtext(self):
         is_correct = 'Ответ верный' if self.is_correct else 'Ответ не верный'
-        d1 =  {
+        d1 = {
             is_correct: ['is_correct'],
             self.answer_text: ['answer'],
             self.time_to_solve.strftime("%H:%M:%S"): ['time_to_solve'],
@@ -399,6 +434,7 @@ class Answer(models.Model):
         d2 = self.question.to_flashtext()
         d3 = self.user.to_flashtext()
         return {**d1, **d2, **d3}
+
 
 class PaymentPlan(models.Model):
     short_name = models.CharField(_(u'Название'), max_length=50, unique=True)
@@ -414,7 +450,7 @@ class PaymentPlan(models.Model):
         return f'{self.short_name}'
 
     def to_flashtext(self):
-        return  {
+        return {
             self.short_name: ['paymen_plan_name'],
             str(self.cost): ['paymen_plan_cost'],
             str(self.gold_amount): ['paymen_plan_gold_amount'],
@@ -430,13 +466,14 @@ class PaymentPlan(models.Model):
             discount = 1
             query = PaymentPlan.objects.all()
 
-        ans = ''; names = []
+        ans = ''
+        names = []
         for plan in query:
             cost = plan.cost * discount
             names.append({
                 'id': plan.id,
-                'gold_amount': plan.gold_amount, 
-                'name': plan.short_name, 
+                'gold_amount': plan.gold_amount,
+                'name': plan.short_name,
                 'cost': cost}
             )
             ans += f'<b>{plan.short_name}:</b>\n'
@@ -444,7 +481,7 @@ class PaymentPlan(models.Model):
             ans += f' - <b>{cost}</b> стоимость\n'
             ans += '----------\n'
 
-        return {ans[:-11]: ['plans'] }, names
+        return {ans[:-11]: ['plans']}, names
 
     @staticmethod
     def payment_details(promocode_id, plan_id):
@@ -470,16 +507,19 @@ class Promocode(models.Model):
     short_name = models.CharField(_(u'Название'), max_length=50, unique=True)
     text = models.TextField(_(u'Текст'), max_length=250)
     date_created = models.DateTimeField(_(u'Дата создания'), auto_now_add=True)
-    date_expire = models.DateTimeField(_(u'Дата окончания действия'), default=get_deadline)
-    clics_left = models.IntegerField(_(u'Оставшееся количество использований'), default=100)
-    clics_amount = models.IntegerField(_(u'Общее количество использований'), default=0)
+    date_expire = models.DateTimeField(
+        _(u'Дата окончания действия'), default=get_deadline)
+    clics_left = models.IntegerField(
+        _(u'Оставшееся количество использований'), default=100)
+    clics_amount = models.IntegerField(
+        _(u'Общее количество использований'), default=0)
     discount = models.IntegerField(_(u'Скидка, %'), default=10)
 
     plan = models.OneToOneField(
         PaymentPlan,
         related_name=_(u'promocode'),
         verbose_name=_(u'Вариант оплаты'),
-        help_text= _(u'Вариант оплаты'),
+        help_text=_(u'Вариант оплаты'),
         on_delete=models.SET_NULL, blank=True, null=True
     )
 
@@ -493,7 +533,7 @@ class Promocode(models.Model):
 
     def to_flashtext(self):
         is_valid = 'Просрочен' if self.is_expired() else 'Действует'
-        return  {
+        return {
             self.short_name: ['promocode_name'],
             is_valid: ['is_valid'],
             self.text: ['promocode_text'],
@@ -505,7 +545,7 @@ class Promocode(models.Model):
             return False
         else:
             return True
-   
+
     @staticmethod
     def is_promocode_valid(promocode: str, user_id: int) -> Optional[bool]:
         promocode = promocode.replace(' ', '')
@@ -514,16 +554,16 @@ class Promocode(models.Model):
             date_expire__gte=now(),
             clics_left__gt=0
         ).first()
-        payments = Payment.objects.filter(user__user_id=user_id, promocode__short_name=promocode).count()
+        payments = Payment.objects.filter(
+            user__user_id=user_id, promocode__short_name=promocode).count()
         if payments > 0:
             valid_promocode = None
         return valid_promocode
-       
+
     def use_promocode(self) -> None:
         self.clics_left -= 1
         self.clics_amount += 1
         self.save()
-        
 
 
 class Payment(models.Model):
@@ -532,7 +572,7 @@ class Payment(models.Model):
         related_name=_('payments'),
         related_query_name=_('payment'),
         verbose_name=_(u'Пользователь'),
-        help_text= _(u'Пользователь'),
+        help_text=_(u'Пользователь'),
         on_delete=models.RESTRICT, blank=True, null=True
     )
     promocode = models.ForeignKey(
@@ -540,7 +580,7 @@ class Payment(models.Model):
         related_name=_('payments'),
         related_query_name=_('payment'),
         verbose_name=_(u'Промокод'),
-        help_text= _(u'Промокод'),
+        help_text=_(u'Промокод'),
         on_delete=models.SET_DEFAULT, blank=True, default=None, null=True
     )
     plan = models.ForeignKey(
@@ -548,7 +588,7 @@ class Payment(models.Model):
         related_name=_('payments'),
         related_query_name=_('payment'),
         verbose_name=_(u'Вариант оплаты'),
-        help_text= _(u'Вариант оплаты'),
+        help_text=_(u'Вариант оплаты'),
         on_delete=models.SET_NULL, blank=True, null=True
     )
     date_created = models.DateTimeField(_('Дата платежа'), auto_now_add=True)
@@ -562,19 +602,36 @@ class Payment(models.Model):
         return f'Платеж от: {str(self.user)}'
 
     def to_flashtext(self):
-        d1 =  self.promocode.to_flashtext()
+        d1 = self.promocode.to_flashtext()
         d2 = self.user.to_flashtext()
         d3 = self.plan.to_flashtext()
         return {**d1, **d2, **d3}
 
 
 class SupportMessage(models.Model):
-    text = models.TextField(_(u'Текст сообщения'), max_length=300, blank=True)
+    text = models.TextField(_(u'Текст сообщения'), max_length=450, blank=True)
     role = models.CharField(_(u'Роль'), max_length=20)
-    file = models.FileField(_(u'Файл'), upload_to='message/', blank=True)
-    file_tg_id = models.CharField(_(u'Id файла в телеграм'), max_length=100, null=True)
-    is_active= models.BooleanField(_(u'Использовать в качестве ответа'), default=False)
+    file = CloudinaryField(
+        _('Фото (png, jpeg) / Видео (mp4)'),
+        help_text='Чтобы добавить файл/аудио/большое видео используйте ссылку в сообщении',
+        blank=True,
+        null=True,
+        default=None,
+        overwrite=True,
+        folder='corporatum/messages',
+        use_filename=True,
+    )
+    sticker = models.CharField(
+        _(u'Id стикера в телеграм'),
+        help_text='Отправьте стикер боту, чтобы узнать его ID, затем вставьте его сюда без лишних символов', 
+        max_length=250, blank=True
+    )
+    file_tg_id = models.CharField(
+        _(u'Id файла в телеграм'), max_length=100, null=True)
+    is_active = models.BooleanField(
+        _(u'Использовать в качестве ответа'), default=False)
     available_words = models.TextField(_(u'Доступные сокращения'), blank=True)
+
     class Meta:
         verbose_name = _('Служебное сообщение')
         verbose_name_plural = _('Служебные сообщения')
@@ -587,7 +644,7 @@ class SupportMessage(models.Model):
     def get_message(cnt: HelpContext) -> SupportMessage:
         re = SupportMessage.objects.filter(role=cnt.role, is_active=True)
         N = len(re) - 1
-        msq = re[random.randint(0, N)]  if N > 0 else re[0]
+        msq = re[random.randint(0, N)] if N > 0 else re[0]
 
         if cnt.keywords:
             keyword_processor = KeywordProcessor()
@@ -603,7 +660,6 @@ class SupportMessage(models.Model):
         return keyword_processor.replace_keywords(text)
 
 
-
 def do_payment(u_id, payment_plan_id, promocode_id):
     user = User.objects.get(user_id=u_id)
     plan = PaymentPlan.objects.get(id=payment_plan_id)
@@ -614,7 +670,8 @@ def do_payment(u_id, payment_plan_id, promocode_id):
         promocode=promocode,
         plan=plan
     ).save()
-    if promocode: promocode.use_promocode()
+    if promocode:
+        promocode.use_promocode()
     user.add_gold(plan)
     return user
 
@@ -645,4 +702,3 @@ def auto_delete_file_on_change(sender, instance, **kwargs):
     if instance.file_tg_id is not None and old_file != new_file:
         instance.file_tg_id = None
         instance.save()
-
