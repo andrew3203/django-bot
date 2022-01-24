@@ -336,21 +336,14 @@ class Test(models.Model):
         for q_id in questions:
             ans = Answer.objects.filter(
                 user__user_id=user_id, question__id=q_id).first()
-            am = (am + 1) if ans.is_correct else am
-        if len(questions) > 0:
-            return {
-                f'{am}': ['right_amount'],
-                f'{len(questions)}': ['questions_amount'],
-                f'{100*(am / len(questions)):.2f} %': ['right_percent'],
-                f'{100*(1 - am / len(questions)):.2f} %': ['wrong_percent']
-            }
-        else:
-            return {
-                f'{0}': ['right_amount'],
-                f'{0}': ['questions_amount'],
-                f'{0:.2f} %': ['right_percent'],
-                f'{0:.2f} %': ['wrong_percent']
-            }
+            am = (am + 1) if ans and ans.is_correct else am
+        return {
+            f'{am}': ['right_amount'],
+            f'{len(questions)}': ['questions_amount'],
+            f'{100*(am / len(questions)):.2f} %': ['right_percent'],
+            f'{100*(1 - am / len(questions)):.2f} %': ['wrong_percent']
+        }
+        
 
     @admin.display(description='Тема')
     def get_theme(self):
