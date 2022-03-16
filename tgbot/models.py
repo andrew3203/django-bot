@@ -141,6 +141,17 @@ class Question(models.Model):
     right_answers = models.TextField(
         _('Правильные варианты'), max_length=1000, blank=True)
 
+    is_sub_question = models.BooleanField(
+        _('Под вопрос'),
+        help_text='Поставьте галочку, чтобы использовать как промежуточный вопрос',
+        default=False
+    )
+    need_answer = models.BooleanField(
+        _('Давать обратную связь на подвопрос'),
+        help_text='Поставьте галочку, чтобы бот отвечал пользователю на этот под вопрос',
+        default=False
+    )
+
     class AnswerType(models.TextChoices):
         WORD = 'Word', _('Слово')
         FLY_BTN = 'FlyButtons', _('Летающие кнопки')
@@ -252,6 +263,11 @@ class Question(models.Model):
         for q in Question.objects.filter(test__id=test_id):
             s.add((q.difficulty_lvl, q.get_difficulty_lvl_name()))
         return sorted(s, key=lambda x: x[0])
+    
+    @staticmethod
+    def is_subquestion(q_id):
+        return Question.objects.get(id=q_id).is_sub_question
+         
 
     @admin.display(description='Тест')
     def get_test(self):
@@ -337,11 +353,12 @@ class Test(models.Model):
             ans = Answer.objects.filter(
                 user__user_id=user_id, question__id=q_id).first()
             am = (am + 1) if ans and ans.is_correct else am
+        N = len(questions)
         return {
             f'{am}': ['right_amount'],
-            f'{len(questions)}': ['questions_amount'],
-            f'{100*(am / len(questions)):.2f} %': ['right_percent'],
-            f'{100*(1 - am / len(questions)):.2f} %': ['wrong_percent']
+            f'{N}': ['questions_amount'],
+            f'{100 * am / N:.2f} %': ['right_percent'],
+            f'{100*(1 - am / N):.2f} %': ['wrong_percent']
         }
         
 

@@ -119,6 +119,7 @@ class QuestionAdmin(admin.ModelAdmin):
         ('Основное', {
             'fields': (
                 ("short_name", "difficulty_lvl"),
+                ('is_sub_question', 'need_answer'),
                 ('file',),
                 ('sticker',),
                 ("timer",),

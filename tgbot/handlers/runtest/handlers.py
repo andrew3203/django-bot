@@ -62,9 +62,9 @@ def run_test(update: Update, context: CallbackContext) -> str:
     context.user_data['hcnt'] = _do_message(hcnt, reply_markup=markup)    
     return conf.QUESTIONS
 
-def show_question(update: Update, context: CallbackContext) -> str:
+def show_question(update: Update, context: CallbackContext, current_q_id = None) -> str:
     query = update.callback_query
-    q_id = query.data.split("-")[-1]
+    q_id = query.data.split("-")[-1] if current_q_id is None else current_q_id
                
     u = User.get_user(update, context)        
     q = Question.objects.get(id=q_id)
@@ -79,8 +79,9 @@ def show_question(update: Update, context: CallbackContext) -> str:
         context.user_data['hcnt'] = _do_message(hcnt, reply_markup=markup)  
         return None
     else:
-        u.gold -= q.difficulty_lvl
-        u.save()
+        if not u.is_sub_question:
+            u.gold -= q.difficulty_lvl
+            u.save()
     remove_job_if_exists(f'{hcnt.user_id}-trackquestion', context)
     hcnt = _del_kb_message_if_exists(context, hcnt, q)
 
@@ -157,7 +158,13 @@ def receive_callback_answer(update: Update, context: CallbackContext) -> str:
     answer_text = q.get_ans_variants()[ans_num]
     hcnt, markup, _, re = _check_answer(context, answer_text, q)
     hcnt.action = 'edit_msg' 
-    context.user_data['hcnt'] = _do_message(hcnt, reply_markup=markup)
+
+    if (hcnt.role == 'subquestion' and q.need_answer) or (hcnt.role != 'subquestion'):
+        context.user_data['hcnt'] = _do_message(hcnt, reply_markup=markup)
+    else:
+        context.user_data['hcnt'] = hcnt
+        new_q_id = Test.get_question_id(test_id=hcnt.navigation['test'], last_q_id=q.id)
+        show_question(update, context, current_q_id=new_q_id)
     return re
 
 def receive_text_answer(update: Update, context: CallbackContext) -> str:
@@ -169,12 +176,16 @@ def receive_text_answer(update: Update, context: CallbackContext) -> str:
     if is_correct:
         _set_delay_edit(context, hcnt.copy(), q.id)
         hcnt = _del_kb_message_if_exists(context, hcnt, q)
-        hcnt.action = 'send_msg' 
-        context.user_data['hcnt'] = _do_message(hcnt, reply_markup=markup)
-           
+        hcnt.action = 'send_msg'            
     else:
         hcnt.action = 'edit_msg' 
+
+    if (hcnt.role == 'subquestion' and q.need_answer) or (hcnt.role != 'subquestion'):
         context.user_data['hcnt'] = _do_message(hcnt, reply_markup=markup)
+    else:
+        context.user_data['hcnt'] = hcnt
+        new_q_id = Test.get_question_id(test_id=hcnt.navigation['test'], last_q_id=q.id)
+        show_question(update, context, current_q_id=new_q_id)     
     return re
 
 def receive_poll_answer(update: Update, context: CallbackContext) -> None:
@@ -202,7 +213,13 @@ def receive_poll_answer(update: Update, context: CallbackContext) -> None:
         hcnt.action = 'send_msg' 
     else:
         hcnt.action = 'edit_msg' 
-    context.user_data['hcnt'] = _do_message(hcnt, reply_markup=markup)
+
+    if (hcnt.role == 'subquestion' and q.need_answer) or (hcnt.role != 'subquestion'):
+        context.user_data['hcnt'] = _do_message(hcnt, reply_markup=markup)
+    else:
+        context.user_data['hcnt'] = hcnt
+        new_q_id = Test.get_question_id(test_id=hcnt.navigation['test'], last_q_id=q.id)
+        show_question(update, context, current_q_id=new_q_id)
 
 def _set_delay_edit(context: CallbackContext, hcnt: HelpContext, q_id: int) -> None:
     hcnt.action = 'edit_msg' 
@@ -238,7 +255,11 @@ def _check_answer(context: CallbackContext, answer_text: str, q: Question) -> st
     new_q_id = Test.get_question_id(test_id=hcnt.navigation['test'], last_q_id=q.id)
     hcnt.keywords =  {**hcnt.keywords, **kw}
 
-    if is_correct:
+    if Question.is_subquestion(q.id) or Question.is_subquestion(new_q_id):
+        remove_job_if_exists(f'{hcnt.user_id}-trackquestion', context)
+        hcnt.role = 'subquestion'
+        re = conf.QUESTIONS
+    elif is_correct:
         remove_job_if_exists(f'{hcnt.user_id}-trackquestion', context)
         hcnt.role = 'answer_correct'
         re = conf.QUESTIONS
