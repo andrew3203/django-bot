@@ -79,7 +79,7 @@ def show_question(update: Update, context: CallbackContext, current_q_id = None)
         context.user_data['hcnt'] = _do_message(hcnt, reply_markup=markup)  
         return None
     else:
-        if not u.is_sub_question:
+        if not q.is_sub_question:
             u.gold -= q.difficulty_lvl
             u.save()
     remove_job_if_exists(f'{hcnt.user_id}-trackquestion', context)
